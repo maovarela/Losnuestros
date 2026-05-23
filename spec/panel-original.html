@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Ana María Ortega</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #ebebea;
+    --text: #1a1a1a; --text2: #6b6b6b; --text3: #9a9a9a;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --green-bg: #eaf3de; --green: #3b6d11; --green-border: rgba(59,109,17,0.3);
+    --red-bg: #fcebeb; --red: #a32d2d; --red-border: rgba(163,45,45,0.3);
+    --amber-bg: #faeeda; --amber: #854f0b; --amber-border: rgba(133,79,11,0.3);
+    --blue-bg: #e6f1fb; --blue: #185fa5; --blue-border: rgba(24,95,165,0.3);
+    --radius: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'SF Mono', 'Fira Code', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --bg2: #2a2a28; --bg3: #333330;
+      --text: #f0f0ee; --text2: #a0a09e; --text3: #666664;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --green-bg: #173404; --green: #97c459; --green-border: rgba(151,196,89,0.3);
+      --red-bg: #501313; --red: #f09595; --red-border: rgba(240,149,149,0.3);
+      --amber-bg: #412402; --amber: #ef9f27; --amber-border: rgba(239,159,39,0.3);
+      --blue-bg: #042c53; --blue: #85b7eb; --blue-border: rgba(133,183,235,0.3);
+    }
+  }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .container { max-width: 720px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+  .header { background: var(--bg2); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 16px; border: 0.5px solid var(--border); }
+  .avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--blue-bg); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; color: var(--blue); flex-shrink: 0; }
+  .header-name { font-size: 18px; font-weight: 500; }
+  .tabs { display: flex; gap: 4px; border-bottom: 0.5px solid var(--border); margin-bottom: 1.25rem; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { font-size: 13px; font-weight: 500; padding: 8px 14px; cursor: pointer; border-radius: var(--radius) var(--radius) 0 0; color: var(--text2); background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -0.5px; font-family: var(--font); white-space: nowrap; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+  .tab.active { color: var(--text); border-bottom: 2px solid var(--text); }
+  .tab:hover:not(.active) { background: var(--bg2); }
+  .pane { display: none; } .pane.active { display: block; }
+  .sec-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin: 1.25rem 0 0.65rem; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 10px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; align-items: center; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { color: var(--text2); }
+  .field-input { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  input[type=number], input[type=text], input[type=date], select { font-size: 13px; padding: 4px 8px; height: 32px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); color: var(--text); font-family: var(--font); }
+  input[type=number] { width: 130px; }
+  input[type=text], input[type=date] { width: 100%; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); }
+  textarea { width: 100%; font-size: 13px; padding: 8px 10px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text); resize: vertical; min-height: 60px; font-family: var(--font); line-height: 1.5; }
+  .paid-check { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text2); cursor: pointer; }
+  button { font-family: var(--font); font-size: 13px; padding: 6px 16px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); cursor: pointer; }
+  button:hover { background: var(--bg2); }
+  button.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  button.primary:hover { opacity: 0.85; }
+  .badge { font-size: 11px; padding: 3px 9px; border-radius: var(--radius); font-weight: 500; white-space: nowrap; display: inline-block; }
+  .b-ok { background: var(--green-bg); color: var(--green); }
+  .b-pend { background: var(--amber-bg); color: var(--amber); }
+  .b-info { background: var(--blue-bg); color: var(--blue); }
+  .b-danger { background: var(--red-bg); color: var(--red); }
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .metric { background: var(--bg2); border-radius: var(--radius); padding: 0.75rem 1rem; }
+  .metric-label { font-size: 12px; color: var(--text2); margin-bottom: 3px; }
+  .metric-val { font-size: 17px; font-weight: 500; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  .tbl th { text-align: left; color: var(--text3); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 0.5px solid var(--border); }
+  .tbl td { padding: 8px; border-bottom: 0.5px solid var(--border); vertical-align: middle; word-break: break-word; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: var(--bg2); }
+  .icon-btn { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
+  .icon-btn:hover { color: var(--red); background: var(--red-bg); }
+  .icon-btn.edit:hover { color: var(--blue); background: var(--blue-bg); }
+  .empty-state { text-align: center; padding: 2rem; color: var(--text3); font-size: 13px; }
+  .note-box { background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; color: var(--text2); margin-top: 10px; font-style: italic; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 10px 0; }
+  .alert-row { background: var(--amber-bg); border: 0.5px solid var(--amber-border); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; color: var(--amber); display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .alert-danger { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .form-group label { color: var(--text2); }
+  .ref { font-family: var(--mono); font-size: 12px; background: var(--bg2); padding: 2px 8px; border-radius: 5px; display: inline-block; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .dot-ok { background: var(--green); } .dot-pend { background: var(--amber); }
+  .info-row { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 0.5px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+  .income-card { background: var(--green-bg); border: 0.5px solid var(--green-border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 10px; }
+  .banco-block { border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 12px 14px; margin-top: 12px; }
+  .banco-title { font-size: 12px; color: var(--text2); margin-bottom: 10px; font-weight: 500; }
+  .next-appt { background: var(--blue-bg); border: 0.5px solid var(--blue-border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 10px; }
+
+  .alert-banner { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .alert-panel { background: var(--bg); border-radius: var(--radius-lg); padding: 1.5rem; max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+  .alert-panel-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+  .alert-panel-sub { font-size: 12px; color: var(--text2); margin-bottom: 16px; }
+  .alert-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: var(--radius); margin-bottom: 8px; font-size: 13px; }
+  .alert-item-danger { background: var(--red-bg); color: var(--red); border: 0.5px solid var(--red-border); }
+  .alert-item-warn { background: var(--amber-bg); color: var(--amber); border: 0.5px solid var(--amber-border); }
+  .alert-item-ok { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--green-border); }
+  .alert-item-info { background: var(--blue-bg); color: var(--blue); border: 0.5px solid var(--blue-border); }
+  .alert-icon { font-size: 18px; flex-shrink: 0; }
+  .alert-text strong { display: block; font-weight: 500; margin-bottom: 2px; }
+  .alert-text span { font-size: 12px; opacity: 0.85; }
+
+  @media (max-width: 520px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .field-row { grid-template-columns: 1fr; }
+    .field-input { justify-content: flex-start; }
+    input[type=number] { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- BANNER DE ALERTAS AL ABRIR -->
+  <div id="alert-banner" class="alert-banner" style="display:none;">
+    <div class="alert-panel">
+      <div class="alert-panel-title">📋 Resumen del día</div>
+      <div class="alert-panel-sub" id="alert-date"></div>
+      <div id="alert-items"></div>
+      <button class="primary" style="width:100%;margin-top:12px;" onclick="cerrarBanner()">Entendido</button>
+    </div>
+  </div>
+
+
+  <div class="header">
+    <div class="avatar">AO</div>
+    <div><div class="header-name">Ana María Ortega</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('finanzas'); return false;" id="tab-finanzas">Finanzas</button>
+    <button class="tab" onclick="switchTab('referencias'); return false;" id="tab-referencias">Referencias de pago</button>
+    <button class="tab" onclick="switchTab('medicamentos'); return false;" id="tab-medicamentos">Medicamentos</button>
+    <button class="tab" onclick="switchTab('citas'); return false;" id="tab-citas">Citas médicas</button>
+  </div>
+
+  <!-- FINANZAS -->
+  <div id="pane-finanzas" class="pane active">
+    <div class="sec-label">Registrar mes</div>
+    <div class="card">
+      <div class="row" style="margin-bottom:12px;">
+        <div style="font-size:15px;font-weight:500;">Nuevo registro</div>
+        <select id="sel-mes" style="width:170px;"></select>
+      </div>
+      <div class="field-row"><span class="field-label">Pensión recibida</span><div class="field-input"><input type="number" id="f-pension" value="4299866"></div></div>
+      <div class="field-row"><span class="field-label">Prima (jun / dic)</span><div class="field-input"><input type="number" id="f-prima" placeholder="0"></div></div>
+      <div class="field-row"><span class="field-label">Compensar salud</span><div class="field-input"><input type="number" id="f-compensar" value="617200"><label class="paid-check"><input type="checkbox" id="c-compensar"> Pagado</label></div></div>
+      <div class="field-row"><span class="field-label">Energía Enel</span><div class="field-input"><input type="number" id="f-enel" value="252470"><label class="paid-check"><input type="checkbox" id="c-enel"> Pagado</label></div></div>
+      <div class="field-row"><span class="field-label">Gas Vanti</span><div class="field-input"><input type="number" id="f-gas" value="61110"><label class="paid-check"><input type="checkbox" id="c-gas"> Pagado</label></div></div>
+      <div class="field-row"><span class="field-label">Acueducto EAAB</span><div class="field-input"><input type="number" id="f-agua" placeholder="0"><label class="paid-check"><input type="checkbox" id="c-agua"> Pagado</label></div></div>
+      <div class="field-row"><span class="field-label">Empleada doméstica</span><div class="field-input"><input type="number" id="f-empleada" value="1080000"></div></div>
+      <div class="field-row"><span class="field-label">Caja menor</span><div class="field-input"><input type="number" id="f-caja" value="1200000"></div></div>
+      <div class="field-row"><span class="field-label">Mercado</span><div class="field-input"><input type="number" id="f-mercado" value="400000"></div></div>
+      <div class="field-row"><span class="field-label">Claro internet</span><div class="field-input"><input type="number" id="f-internet" value="102000"><label class="paid-check"><input type="checkbox" id="c-internet"> Pagado</label></div></div>
+      <div class="field-row"><span class="field-label">Claro celular</span><div class="field-input"><input type="number" id="f-celular" value="55000"><label class="paid-check"><input type="checkbox" id="c-celular"> Pagado</label></div></div>
+      <div class="field-row"><span class="field-label">Alarma (paga hermana)</span><div class="field-input"><input type="number" id="f-alarma" placeholder="0"><label class="paid-check"><input type="checkbox" id="c-alarma"> Pagado</label></div></div>
+      <div class="field-row"><span class="field-label">Imprevistos / varios</span><div class="field-input"><input type="number" id="f-varios" placeholder="0"></div></div>
+      <div class="banco-block">
+        <div class="banco-title">Saldo real en cuenta bancaria al cierre del mes</div>
+        <div class="field-row" style="border:none;padding:0;">
+          <span class="field-label">Saldo en banco</span>
+          <div class="field-input"><input type="number" id="f-saldo-banco" placeholder="0" style="width:160px;"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Nota del mes</div>
+        <textarea id="f-nota" placeholder="Ej: Se pagó médico por gripa $85.000. Llegó factura bimestral del agua..."></textarea>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="primary" onclick="guardarMes()">Guardar mes</button>
+      </div>
+    </div>
+    <div class="sec-label">Resumen del mes</div>
+    <div id="resumen-wrap"><div class="empty-state">Guarda un mes para ver el resumen</div></div>
+    <div class="sec-label">Historial</div>
+    <div class="card" id="historial-wrap"><div class="empty-state">Aún no hay registros guardados</div></div>
+  </div>
+
+  <!-- REFERENCIAS -->
+  <div id="pane-referencias" class="pane">
+    <div class="sec-label">Ingreso fijo</div>
+    <div class="income-card">
+      <div style="font-size:13px;color:var(--green);margin-bottom:2px;">Pensión mensual — ADMINISTRADORA · cuenta de ahorros</div>
+      <div style="font-size:22px;font-weight:500;color:var(--green);">$4.299.866</div>
+      <div style="font-size:12px;color:var(--green);margin-top:4px;opacity:0.85;">Prima adicional en junio y diciembre</div>
+    </div>
+    <div class="sec-label">Servicios públicos</div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;"><div style="font-size:15px;font-weight:500;">Energía · Enel / Codensa</div><span class="badge b-pend">Antes del 21 de cada mes</span></div>
+      <div class="info-row"><span style="color:var(--text2);">N° de cliente</span><span class="ref">0501354-1</span></div>
+      <div class="info-row"><span style="color:var(--text2);">N° medidor</span><span class="ref">25676886</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Valor ref. (may/26)</span><span style="font-weight:500;">$252.470</span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border);">Incluye energía + aseo Bogotá Limpia + cuota Codensa. El valor varía mensualmente.</div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;"><div style="font-size:15px;font-weight:500;">Acueducto + alcantarillado + aseo · EAAB</div><span class="badge b-info">Bimestral · antes del 20</span></div>
+      <div class="info-row"><span style="color:var(--text2);">N° para pagos</span><span class="ref">19890424815</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Cuenta contrato</span><span class="ref">10235641</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Valor ref. (oct–dic/25)</span><span style="font-weight:500;">$318.650</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Frecuencia</span><span style="font-weight:500;">Cada 2 meses</span></div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;"><div style="font-size:15px;font-weight:500;">Gas · Vanti</div><span class="badge b-pend">Antes del 18 de cada mes</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Código sector</span><span class="ref">60971121</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Valor ref. (sep/25)</span><span style="font-weight:500;">$61.110</span></div>
+      <div style="font-size:12px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border);">Verificar N° de referencia en cada factura nueva.</div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px;"><div style="font-size:15px;font-weight:500;">Salud · Compensar</div><span class="badge b-pend">Antes del 30 de cada mes</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Referencia de pago</span><span class="ref">0416050024245972</span></div>
+      <div class="info-row"><span style="color:var(--text2);">NIT</span><span class="ref">860066942-7</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Dirección</span><span style="font-weight:500;">Av. 68 No. 49A-47 · Tel. 428 06 66</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Valor mensual</span><span style="font-weight:500;">$617.200</span></div>
+    </div>
+    <div class="sec-label">Gastos fijos del hogar</div>
+    <div class="card">
+      <div class="info-row"><span style="color:var(--text2);">Caja menor semanal</span><span style="font-weight:500;">$300.000 · ≈ $1.200.000 / mes</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Empleada doméstica</span><span style="font-weight:500;">$90.000 × 12 visitas = $1.080.000 / mes</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Días que va</span><span style="font-weight:500;">Lunes · Miércoles · Sábado</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Mercado mensual</span><span style="font-weight:500;">≈ $400.000</span></div>
+    </div>
+    <div class="sec-label">Resumen mensual estimado</div>
+    <div class="card">
+      <div class="info-row"><span style="color:var(--text2);">Pensión</span><span style="color:var(--green);font-weight:500;">+ $4.299.866</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Salud Compensar</span><span style="color:var(--red);font-weight:500;">− $617.200</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Energía Enel</span><span style="color:var(--red);font-weight:500;">− $252.470</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Acueducto EAAB (÷2)</span><span style="color:var(--red);font-weight:500;">− $159.325</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Gas Vanti (ref.)</span><span style="color:var(--red);font-weight:500;">− $61.110</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Empleada doméstica</span><span style="color:var(--red);font-weight:500;">− $1.080.000</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Caja menor</span><span style="color:var(--red);font-weight:500;">− $1.200.000</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Mercado</span><span style="color:var(--red);font-weight:500;">− $400.000</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Claro internet</span><span style="color:var(--red);font-weight:500;">− $102.000</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Claro celular</span><span style="color:var(--red);font-weight:500;">− $55.000</span></div>
+      <div class="info-row"><span style="color:var(--text2);">Alarma (paga hermana)</span><span style="color:var(--text2);font-weight:500;">valor por confirmar</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:6px;border-top:0.5px solid var(--border2);">
+        <span style="font-size:14px;font-weight:500;">Disponible para imprevistos</span>
+        <span style="font-size:20px;font-weight:500;color:var(--green);">$372.761</span>
+      </div>
+    </div>
+    <div class="sec-label">Checklist mensual</div>
+    <div class="card" id="checklist-container"></div>
+  </div>
+
+  <!-- MEDICAMENTOS -->
+  <div id="pane-medicamentos" class="pane">
+    <div id="med-alertas"></div>
+    <div class="sec-label">Agregar / editar medicamento</div>
+    <div class="card">
+      <input type="hidden" id="med-edit-id">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1;"><label>Nombre del medicamento *</label><input type="text" id="med-nombre" placeholder="Ej: Atorvastatina 40mg"></div>
+        <div class="form-group"><label>Dosis / frecuencia</label><input type="text" id="med-dosis" placeholder="Ej: 1 tableta cada 24 horas"></div>
+        <div class="form-group"><label>Médico que recetó</label><input type="text" id="med-medico" placeholder="Ej: Dr. Bastidas - Medicina Familiar"></div>
+        <div class="form-group"><label>Fecha último refill</label><input type="date" id="med-ultimo"></div>
+        <div class="form-group"><label>Fecha próximo refill</label><input type="date" id="med-proximo"></div>
+        <div class="form-group" style="grid-column:1/-1;"><label>Notas adicionales</label><textarea id="med-nota" placeholder="Ej: Tomar con comida. Pedir fórmula cada 6 meses." style="min-height:48px;"></textarea></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="cancelarMed()">Cancelar</button>
+        <button class="primary" onclick="guardarMed()">Guardar medicamento</button>
+      </div>
+    </div>
+    <div class="sec-label">Medicamentos activos</div>
+    <div class="card" id="med-lista"><div class="empty-state">Cargando...</div></div>
+  </div>
+
+  <!-- CITAS -->
+  <div id="pane-citas" class="pane">
+    <div id="proxima-cita-banner"></div>
+    <div class="sec-label">Registrar cita</div>
+    <div class="card">
+      <input type="hidden" id="cita-edit-id">
+      <div class="form-grid">
+        <div class="form-group"><label>Fecha de la cita *</label><input type="date" id="cita-fecha"></div>
+        <div class="form-group"><label>Especialidad / médico</label><input type="text" id="cita-medico" placeholder="Ej: Neurología - Dra. Medina"></div>
+        <div class="form-group" style="grid-column:1/-1;"><label>Motivo de la cita</label><input type="text" id="cita-motivo" placeholder="Ej: Control neurológico"></div>
+        <div class="form-group"><label>Lugar</label><input type="text" id="cita-lugar" placeholder="Ej: Piso 11, Consultorio 22, Edificio El Bosque"></div>
+        <div class="form-group"><label>Próxima cita programada</label><input type="date" id="cita-proxima"></div>
+        <div class="form-group" style="grid-column:1/-1;"><label>Resultado / notas</label><textarea id="cita-notas" placeholder="Ej: Tensión 130/80. Cambia dosis. Pedir examen de sangre."></textarea></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="cancelarCita()">Cancelar</button>
+        <button class="primary" onclick="guardarCita()">Guardar cita</button>
+      </div>
+    </div>
+    <div class="sec-label">Historial de citas</div>
+    <div class="card" id="citas-lista"><div class="empty-state">Cargando...</div></div>
+  </div>
+
+</div>
+<script>
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const AÑOS=[2025,2026,2027,2028];
+const KEY_FIN='mama_fin_v4',KEY_MED='mama_med_v2',KEY_CITAS='mama_citas_v2';
+
+// Datos iniciales de medicamentos
+const MEDS_INICIALES=[
+  {id:'m1',nombre:'Rivastigmina 9.5mg/24h parche transdérmico',dosis:'1 parche cada 24 horas · vía transdérmica',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+  {id:'m2',nombre:'Ácido acetilsalicílico (ASA) 100mg tableta',dosis:'1 tableta cada 24 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+  {id:'m3',nombre:'Atorvastatina 40mg tableta recubierta',dosis:'1 tableta cada 24 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+  {id:'m4',nombre:'Losartán potásico 50mg tableta recubierta',dosis:'1 tableta cada 12 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+  {id:'m5',nombre:'Levotiroxina sódica 50mcg tableta',dosis:'1 tableta cada 24 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:'Indicación: eutirox'},
+  {id:'m6',nombre:'Hidroxicloroquina 200mg tableta',dosis:'1 tableta cada 24 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+  {id:'m7',nombre:'Prednisolona 5mg tableta',dosis:'1 tableta cada 24 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+  {id:'m8',nombre:'Acetaminofén 500mg tableta',dosis:'1 tableta cada 12 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+  {id:'m9',nombre:'Carbonato de calcio 1500mg / Vitamina D3 200UI tableta',dosis:'1 tableta cada 24 horas · vía oral',medico:'Dr. Bastidas Mejía Carlin José · Medicina Familiar · Compensar',ultimo:'2026-05-16',proximo:'2026-05-31',nota:''},
+];
+
+// Cita inicial
+const CITAS_INICIALES=[
+  {id:'c1',fecha:'2026-06-05',medico:'Neurología · Dra. María Isabel Medina De Bedoya',motivo:'Control neurológico',lugar:'Piso 11 · Consultorio 22 · Edificio El Bosque · 11:00 AM',proxima:'',notas:''},
+];
+
+function switchTab(name){
+  var tabs=['finanzas','referencias','medicamentos','citas'];
+  tabs.forEach(function(t){
+    var pane=document.getElementById('pane-'+t);
+    var tab=document.getElementById('tab-'+t);
+    if(pane){ pane.style.display = (t===name)?'block':'none'; }
+    if(tab){ 
+      if(t===name){ tab.classList.add('active'); } 
+      else { tab.classList.remove('active'); }
+    }
+  });
+  if(name==='medicamentos') renderMeds();
+  if(name==='citas') renderCitas();
+  if(name==='referencias') renderChecklist();
+  window.scrollTo(0,0);
+}
+
+const sel=document.getElementById('sel-mes');
+sel.innerHTML='<option value="">Seleccionar mes...</option>';
+AÑOS.forEach(a=>MESES.forEach((m,i)=>{
+  const o=document.createElement('option');
+  o.value=`${a}-${String(i+1).padStart(2,'0')}`;
+  o.textContent=`${m} ${a}`;
+  sel.appendChild(o);
+}));
+const now=new Date();
+sel.value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+function fmt(n){return'$'+Math.round(n).toLocaleString('es-CO');}
+function fmtDate(d){if(!d)return'—';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+function daysUntil(d){if(!d)return null;return Math.ceil((new Date(d)-new Date())/(864e5));}
+
+function getF(){try{const r=localStorage.getItem(KEY_FIN);return r?JSON.parse(r):{}}catch(e){return{};}}
+function saveF(d){try{localStorage.setItem(KEY_FIN,JSON.stringify(d));}catch(e){}}
+function getM(){
+  try{
+    const r=localStorage.getItem(KEY_MED);
+    if(r)return JSON.parse(r);
+    // Primera vez: cargar datos iniciales
+    saveM(MEDS_INICIALES);
+    return MEDS_INICIALES;
+  }catch(e){return MEDS_INICIALES;}
+}
+function saveM(d){try{localStorage.setItem(KEY_MED,JSON.stringify(d));}catch(e){}}
+function getC(){
+  try{
+    const r=localStorage.getItem(KEY_CITAS);
+    if(r)return JSON.parse(r);
+    saveC(CITAS_INICIALES);
+    return CITAS_INICIALES;
+  }catch(e){return CITAS_INICIALES;}
+}
+function saveC(d){try{localStorage.setItem(KEY_CITAS,JSON.stringify(d));}catch(e){}}
+
+function guardarMes(){
+  const mes=sel.value;if(!mes){alert('Selecciona un mes');return;}
+  const g=id=>parseFloat(document.getElementById(id).value)||0;
+  const c=id=>document.getElementById(id).checked;
+  const r={mes,pension:g('f-pension'),prima:g('f-prima'),compensar:g('f-compensar'),compensar_ok:c('c-compensar'),enel:g('f-enel'),enel_ok:c('c-enel'),gas:g('f-gas'),gas_ok:c('c-gas'),agua:g('f-agua'),agua_ok:c('c-agua'),empleada:g('f-empleada'),caja:g('f-caja'),mercado:g('f-mercado'),internet:g('f-internet'),internet_ok:c('c-internet'),celular:g('f-celular'),celular_ok:c('c-celular'),alarma:g('f-alarma'),alarma_ok:c('c-alarma'),internet:g('f-internet'),internet_ok:c('c-internet'),celular:g('f-celular'),celular_ok:c('c-celular'),alarma:g('f-alarma'),alarma_ok:c('c-alarma'),varios:g('f-varios'),saldo_banco:g('f-saldo-banco'),nota:document.getElementById('f-nota').value.trim(),ts:Date.now()};
+  const data=getF();data[mes]=r;saveF(data);
+  renderResumen(r);renderHistorial();
+}
+
+function difStyle(d){if(Math.abs(d)<10000)return'color:var(--green)';if(d<0)return'color:var(--red)';return'color:var(--amber)';}
+function difLabel(d){if(Math.abs(d)<10000)return'Cuadra ✓';if(d>0)return'Banco tiene más de lo esperado';return'Banco tiene menos de lo esperado ⚠';}
+
+function renderResumen(r){
+  const ingreso=r.pension+(r.prima||0);
+  const gastos=r.compensar+r.enel+r.gas+r.agua+(r.internet||0)+(r.celular||0)+(r.alarma||0)+r.empleada+r.caja+r.mercado+r.varios;
+  const teorico=ingreso-gastos;const banco=r.saldo_banco||0;const dif=banco-teorico;
+  const[a,m]=r.mes.split('-');const label=`${MESES[parseInt(m)-1]} ${a}`;
+  const svcs=[{name:'Compensar salud',val:r.compensar,ok:r.compensar_ok},{name:'Energía Enel',val:r.enel,ok:r.enel_ok},{name:'Gas Vanti',val:r.gas,ok:r.gas_ok},{name:'Acueducto EAAB',val:r.agua,ok:r.agua_ok},{name:'Claro internet',val:r.internet||0,ok:r.internet_ok},{name:'Claro celular',val:r.celular||0,ok:r.celular_ok},{name:'Alarma (paga hermana)',val:r.alarma||0,ok:r.alarma_ok}];
+  const filas=[
+    ...svcs.filter(s=>s.val>0).map(s=>`<div class="field-row"><span class="field-label"><span class="status-dot ${s.ok?'dot-ok':'dot-pend'}"></span>${s.name}</span><span style="font-weight:500;text-align:right;">${fmt(s.val)} <span class="badge ${s.ok?'b-ok':'b-pend'}">${s.ok?'Pagado':'Pendiente'}</span></span></div>`),
+    r.empleada>0?`<div class="field-row"><span class="field-label">Empleada</span><span style="font-weight:500;">${fmt(r.empleada)}</span></div>`:'',
+    r.caja>0?`<div class="field-row"><span class="field-label">Caja menor</span><span style="font-weight:500;">${fmt(r.caja)}</span></div>`:'',
+    r.mercado>0?`<div class="field-row"><span class="field-label">Mercado</span><span style="font-weight:500;">${fmt(r.mercado)}</span></div>`:'',
+    r.varios>0?`<div class="field-row"><span class="field-label">Imprevistos</span><span style="font-weight:500;">${fmt(r.varios)}</span></div>`:'',
+  ].join('');
+  const bancoHtml=banco>0?`<div style="margin-top:12px;border:0.5px solid var(--border2);border-radius:var(--radius);padding:12px 14px;"><div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:8px;">Verificación bancaria</div><div class="field-row"><span class="field-label">Saldo teórico esperado</span><span style="font-weight:500;">${fmt(teorico)}</span></div><div class="field-row"><span class="field-label">Saldo real en banco</span><span style="font-weight:500;">${fmt(banco)}</span></div><div class="field-row" style="border:none;"><span class="field-label">Diferencia</span><span style="font-weight:500;${difStyle(dif)}">${dif>=0?'+':''}${fmt(dif)} · ${difLabel(dif)}</span></div></div>`:'';
+  document.getElementById('resumen-wrap').innerHTML=`<div class="card"><div class="row" style="margin-bottom:12px;"><div style="font-size:15px;font-weight:500;">${label}</div><span class="badge b-info">Detalle</span></div><div class="metrics-grid"><div class="metric"><div class="metric-label">Ingreso total</div><div class="metric-val" style="color:var(--green);">${fmt(ingreso)}</div></div><div class="metric"><div class="metric-label">Total gastos</div><div class="metric-val" style="color:var(--red);">${fmt(gastos)}</div></div><div class="metric"><div class="metric-label">Saldo teórico</div><div class="metric-val" style="color:var(--text2);">${fmt(teorico)}</div><div class="metric-sub">calculado</div></div>${banco>0?`<div class="metric"><div class="metric-label">Saldo real banco</div><div class="metric-val" style="${difStyle(dif)}">${fmt(banco)}</div><div class="metric-sub">confirmado</div></div>`:''}</div><div class="divider"></div><div class="field-row"><span class="field-label">Pensión</span><span style="font-weight:500;color:var(--green);">+ ${fmt(r.pension)}</span></div>${r.prima>0?`<div class="field-row"><span class="field-label">Prima</span><span style="font-weight:500;color:var(--green);">+ ${fmt(r.prima)}</span></div>`:''}<div style="height:4px;"></div>${filas}${bancoHtml}${r.nota?`<div class="note-box">${r.nota.replace(/\n/g,'<br>')}</div>`:''}</div>`;
+}
+
+function cargarEnFormulario(mes){
+  const r=getF()[mes];if(!r)return;
+  sel.value=r.mes;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+  const chk=(id,v)=>{const el=document.getElementById(id);if(el)el.checked=!!v;};
+  set('f-pension',r.pension);set('f-prima',r.prima||'');set('f-compensar',r.compensar);chk('c-compensar',r.compensar_ok);set('f-enel',r.enel);chk('c-enel',r.enel_ok);set('f-gas',r.gas);chk('c-gas',r.gas_ok);set('f-agua',r.agua);chk('c-agua',r.agua_ok);set('f-empleada',r.empleada);set('f-caja',r.caja);set('f-mercado',r.mercado);set('f-varios',r.varios);set('f-internet',r.internet||'');chk('c-internet',r.internet_ok);set('f-celular',r.celular||'');chk('c-celular',r.celular_ok);set('f-alarma',r.alarma||'');chk('c-alarma',r.alarma_ok);set('f-saldo-banco',r.saldo_banco||'');
+  document.getElementById('f-nota').value=r.nota||'';
+  renderResumen(r);switchTab('finanzas');window.scrollTo(0,0);
+}
+
+function borrarMes(mes){
+  if(!confirm('¿Borrar este registro?'))return;
+  const data=getF();delete data[mes];saveF(data);renderHistorial();
+  document.getElementById('resumen-wrap').innerHTML='<div class="empty-state">Guarda un mes para ver el resumen</div>';
+}
+
+function renderHistorial(){
+  const data=getF();const keys=Object.keys(data).sort().reverse();
+  const wrap=document.getElementById('historial-wrap');
+  if(!keys.length){wrap.innerHTML='<div class="empty-state">Aún no hay registros guardados</div>';return;}
+  const filas=keys.map(k=>{
+    const r=data[k];const[a,m]=k.split('-');const label=`${MESES[parseInt(m)-1]} ${a}`;
+    const ingreso=r.pension+(r.prima||0);const gastos=r.compensar+r.enel+r.gas+r.agua+(r.internet||0)+(r.celular||0)+(r.alarma||0)+r.empleada+r.caja+r.mercado+r.varios;const teorico=ingreso-gastos;const banco=r.saldo_banco||0;const dif=banco-teorico;
+    const pend=[!r.compensar_ok&&r.compensar>0?'Compensar':'',!r.enel_ok&&r.enel>0?'Enel':'',!r.gas_ok&&r.gas>0?'Gas':'',!r.agua_ok&&r.agua>0?'Agua':'',!r.internet_ok&&(r.internet||0)>0?'Internet':'',!r.celular_ok&&(r.celular||0)>0?'Celular':'',!r.alarma_ok&&(r.alarma||0)>0?'Alarma':''].filter(Boolean);
+    const bancoCell=banco>0?`<span style="font-weight:500;${difStyle(dif)}">${fmt(banco)}</span>`:`<span style="color:var(--text3);font-size:12px;">—</span>`;
+    return`<tr><td style="font-weight:500;">${label}${r.nota?' ✎':''}</td><td style="color:var(--green);">${fmt(ingreso)}</td><td style="color:var(--red);">${fmt(gastos)}</td><td style="color:var(--text2);">${fmt(teorico)}</td><td>${bancoCell}</td><td>${pend.length?`<span class="badge b-pend" style="font-size:10px;">${pend.join(', ')}</span>`:'<span class="badge b-ok">OK</span>'}</td><td style="display:flex;gap:2px;"><button class="icon-btn edit" onclick="cargarEnFormulario('${k}')">✏</button><button class="icon-btn" onclick="borrarMes('${k}')">✕</button></td></tr>`;
+  }).join('');
+  wrap.innerHTML=`<div style="overflow-x:auto;"><table class="tbl"><thead><tr><th style="width:16%;">Mes</th><th style="width:14%;">Ingresos</th><th style="width:14%;">Gastos</th><th style="width:14%;">Teórico</th><th style="width:14%;">Banco</th><th style="width:14%;">Pagos</th><th style="width:14%;"></th></tr></thead><tbody>${filas}</tbody></table></div><div style="font-size:12px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border);">Teórico = pensión menos gastos. Banco = saldo real. Diferencia mayor a $10.000 aparece en amarillo o rojo.</div>`;
+}
+
+const CHECKLIST=[
+  {n:1,t:'Confirmar ingreso de pensión en cuenta de ahorros',s:'$4.299.866 · verificar que haya llegado completo'},
+  {n:2,t:'Pagar Salud Compensar antes del 30',s:'Ref. 0416050024245972 · $617.200'},
+  {n:3,t:'Pagar Energía Enel antes del 21',s:'N° cliente 0501354-1 · revisar valor en la factura'},
+  {n:4,t:'Pagar Gas Vanti antes del 18',s:'Verificar N° de referencia en cada factura · código sector 60971121'},
+  {n:5,t:'Pagar Acueducto EAAB antes del 20 (cada 2 meses)',s:'N° para pagos 19890424815'},
+  {n:6,t:'Entregar caja menor: $300.000 por semana',s:'Anotar fecha de entrega cada semana'},
+  {n:7,t:'Pagar empleada: $90.000 por visita',s:'Lunes · Miércoles · Sábado · 12 visitas = $1.080.000'},
+  {n:8,t:'Mercado del mes: aprox. $400.000',s:'Registrar el gasto real'},
+  {n:9,t:'Pagar Claro internet antes del 30',s:'$102.000 · revisar si el valor cambia'},
+  {n:10,t:'Pagar Claro celular antes del 30',s:'$55.000 · revisar si el valor cambia'},
+  {n:11,t:'Confirmar pago alarma (lo paga la hermana)',s:'Registrar el valor cuando se conozca'},
+  {n:12,t:'Registrar gastos de imprevistos',s:'Medicamentos, citas, reparaciones · colchón $372.761'},
+  {n:13,t:'Verificar saldo real en cuenta bancaria',s:'Comparar con el saldo teórico calculado'},
+  {n:14,t:'Revisar próximo refill de medicamentos',s:'Verificar pestaña Medicamentos para alertas'},
+  {n:15,t:'En junio y diciembre: registrar prima',s:'Documentar valor y fecha de ingreso'},
+];
+function renderChecklist(){
+  document.getElementById('checklist-container').innerHTML=CHECKLIST.map(c=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;"><div style="width:22px;height:22px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--text2);flex-shrink:0;">${c.n}</div><div><div>${c.t}</div><div style="font-size:12px;color:var(--text2);">${c.s}</div></div></div>`).join('');
+}
+
+function guardarMed(){
+  const nombre=document.getElementById('med-nombre').value.trim();if(!nombre){alert('El nombre es obligatorio');return;}
+  const meds=getM();const editId=document.getElementById('med-edit-id').value;
+  const med={id:editId||Date.now().toString(),nombre,dosis:document.getElementById('med-dosis').value.trim(),medico:document.getElementById('med-medico').value.trim(),ultimo:document.getElementById('med-ultimo').value,proximo:document.getElementById('med-proximo').value,nota:document.getElementById('med-nota').value.trim()};
+  if(editId){const idx=meds.findIndex(m=>m.id===editId);if(idx>=0)meds[idx]=med;else meds.push(med);}else meds.push(med);
+  saveM(meds);cancelarMed();renderMeds();
+}
+function cancelarMed(){['med-nombre','med-dosis','med-medico','med-nota'].forEach(id=>document.getElementById(id).value='');['med-ultimo','med-proximo'].forEach(id=>document.getElementById(id).value='');document.getElementById('med-edit-id').value='';}
+function editarMed(id){const med=getM().find(m=>m.id===id);if(!med)return;document.getElementById('med-edit-id').value=med.id;document.getElementById('med-nombre').value=med.nombre||'';document.getElementById('med-dosis').value=med.dosis||'';document.getElementById('med-medico').value=med.medico||'';document.getElementById('med-ultimo').value=med.ultimo||'';document.getElementById('med-proximo').value=med.proximo||'';document.getElementById('med-nota').value=med.nota||'';}
+function borrarMed(id){if(!confirm('¿Borrar este medicamento?'))return;saveM(getM().filter(m=>m.id!==id));renderMeds();}
+
+function renderMeds(){
+  const meds=getM();
+  const alertas=document.getElementById('med-alertas');
+  const proximos=meds.filter(m=>m.proximo&&daysUntil(m.proximo)<=7&&daysUntil(m.proximo)>=0);
+  const vencidos=meds.filter(m=>m.proximo&&daysUntil(m.proximo)<0);
+  let ah='';
+  vencidos.forEach(m=>{ah+=`<div class="alert-row alert-danger">⚠ Refill vencido: <strong>${m.nombre}</strong> — debía hacerse el ${fmtDate(m.proximo)}</div>`;});
+  proximos.forEach(m=>{const d=daysUntil(m.proximo);ah+=`<div class="alert-row">🔔 Refill próximo: <strong>${m.nombre}</strong> — ${d===0?'hoy':d+' día(s)'} (${fmtDate(m.proximo)})</div>`;});
+  alertas.innerHTML=ah;
+  const lista=document.getElementById('med-lista');
+  if(!meds.length){lista.innerHTML='<div class="empty-state">Aún no hay medicamentos registrados</div>';return;}
+  lista.innerHTML=meds.map(m=>{
+    const d=daysUntil(m.proximo);
+    const estado=m.proximo?(d<0?'<span class="badge b-danger">Vencido</span>':d<=7?`<span class="badge b-pend">En ${d} día(s)</span>`:`<span class="badge b-ok">${fmtDate(m.proximo)}</span>`):'';
+    return`<div style="padding:10px 0;border-bottom:0.5px solid var(--border);"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+      <div>
+        <div style="font-size:14px;font-weight:500;">${m.nombre}</div>
+        ${m.dosis?`<div style="font-size:12px;color:var(--text2);margin-top:2px;">Dosis: ${m.dosis}</div>`:''}
+        ${m.medico?`<div style="font-size:12px;color:var(--text2);">Médico: ${m.medico}</div>`:''}
+        ${m.ultimo?`<div style="font-size:12px;color:var(--text2);">Último refill: ${fmtDate(m.ultimo)}</div>`:''}
+        ${m.nota?`<div style="font-size:12px;color:var(--text3);font-style:italic;margin-top:4px;">${m.nota}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+        <div style="font-size:11px;color:var(--text3);">Próximo refill</div>
+        ${estado}
+        <div style="display:flex;gap:2px;">
+          <button class="icon-btn edit" onclick="editarMed('${m.id}')">✏</button>
+          <button class="icon-btn" onclick="borrarMed('${m.id}')">✕</button>
+        </div>
+      </div>
+    </div></div>`;
+  }).join('');
+}
+
+function guardarCita(){
+  const fecha=document.getElementById('cita-fecha').value;if(!fecha){alert('La fecha es obligatoria');return;}
+  const citas=getC();const editId=document.getElementById('cita-edit-id').value;
+  const cita={id:editId||Date.now().toString(),fecha,medico:document.getElementById('cita-medico').value.trim(),motivo:document.getElementById('cita-motivo').value.trim(),lugar:document.getElementById('cita-lugar').value.trim(),proxima:document.getElementById('cita-proxima').value,notas:document.getElementById('cita-notas').value.trim()};
+  if(editId){const idx=citas.findIndex(c=>c.id===editId);if(idx>=0)citas[idx]=cita;else citas.push(cita);}else citas.push(cita);
+  saveC(citas);cancelarCita();renderCitas();
+}
+function cancelarCita(){['cita-medico','cita-motivo','cita-lugar','cita-notas'].forEach(id=>document.getElementById(id).value='');['cita-fecha','cita-proxima'].forEach(id=>document.getElementById(id).value='');document.getElementById('cita-edit-id').value='';}
+function editarCita(id){const c=getC().find(c=>c.id===id);if(!c)return;document.getElementById('cita-edit-id').value=c.id;document.getElementById('cita-fecha').value=c.fecha||'';document.getElementById('cita-medico').value=c.medico||'';document.getElementById('cita-motivo').value=c.motivo||'';document.getElementById('cita-lugar').value=c.lugar||'';document.getElementById('cita-proxima').value=c.proxima||'';document.getElementById('cita-notas').value=c.notas||'';}
+function borrarCita(id){if(!confirm('¿Borrar esta cita?'))return;saveC(getC().filter(c=>c.id!==id));renderCitas();}
+
+function renderCitas(){
+  const citas=getC().sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  // Banner próxima cita
+  const proximas=citas.filter(c=>{const d=daysUntil(c.fecha);return d!==null&&d>=0&&d<=30;}).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const banner=document.getElementById('proxima-cita-banner');
+  if(proximas.length){
+    const p=proximas[0];const d=daysUntil(p.fecha);
+    banner.innerHTML=`<div class="next-appt" style="margin-bottom:10px;">
+      <div style="font-size:12px;color:var(--blue);margin-bottom:4px;font-weight:500;">Próxima cita</div>
+      <div style="font-size:15px;font-weight:500;color:var(--blue);">${p.medico}</div>
+      <div style="font-size:13px;color:var(--blue);margin-top:4px;">${fmtDate(p.fecha)} · ${d===0?'¡Hoy!':d===1?'Mañana':'En '+d+' días'}</div>
+      ${p.lugar?`<div style="font-size:12px;color:var(--blue);margin-top:2px;opacity:0.85;">${p.lugar}</div>`:''}
+    </div>`;
+  } else { banner.innerHTML=''; }
+
+  const lista=document.getElementById('citas-lista');
+  if(!citas.length){lista.innerHTML='<div class="empty-state">Aún no hay citas registradas</div>';return;}
+  lista.innerHTML=citas.map(c=>{
+    const d=daysUntil(c.fecha);
+    const esFutura=d!==null&&d>=0;
+    const proxHtml=c.proxima?`<div style="margin-top:6px;font-size:12px;color:var(--text2);">Próxima cita programada: <strong>${fmtDate(c.proxima)}</strong></div>`:'';
+    return`<div style="padding:12px 0;border-bottom:0.5px solid var(--border);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:14px;font-weight:500;">${fmtDate(c.fecha)}</span>
+            ${esFutura?`<span class="badge b-info">${d===0?'Hoy':d===1?'Mañana':'En '+d+' días'}</span>`:''}
+            ${c.medico?`<span class="badge b-info" style="background:var(--bg2);color:var(--text2);">${c.medico}</span>`:''}
+          </div>
+          ${c.motivo?`<div style="font-size:13px;color:var(--text2);margin-top:4px;">${c.motivo}</div>`:''}
+          ${c.lugar?`<div style="font-size:12px;color:var(--text3);margin-top:2px;">📍 ${c.lugar}</div>`:''}
+          ${c.notas?`<div style="font-size:12px;color:var(--text3);font-style:italic;margin-top:6px;padding:6px 10px;background:var(--bg2);border-radius:var(--radius);">${c.notas.replace(/\n/g,'<br>')}</div>`:''}
+          ${proxHtml}
+        </div>
+        <div style="display:flex;gap:2px;flex-shrink:0;">
+          <button class="icon-btn edit" onclick="editarCita('${c.id}')">✏</button>
+          <button class="icon-btn" onclick="borrarCita('${c.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+function cerrarBanner(){
+  document.getElementById('alert-banner').style.display='none';
+  localStorage.setItem('mama_banner_'+todayKey(),'1');
+}
+
+function todayKey(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function mostrarBanner(){
+  // Solo una vez por día
+  if(localStorage.getItem('mama_banner_'+todayKey())==='1') return;
+
+  const items=[];
+  const hoy=new Date();
+  const dia=hoy.getDate();
+  const mes=hoy.getMonth()+1;
+
+  // Pagos fijos mensuales con fecha límite
+  const pagos=[
+    {nombre:'Energía Enel', limite:21, valor:'$252.470 aprox.'},
+    {nombre:'Gas Vanti', limite:18, valor:'$61.110 aprox.'},
+    {nombre:'Acueducto EAAB', limite:20, valor:'$318.650 (bimestral)'},
+    {nombre:'Salud Compensar', limite:30, valor:'$617.200'},
+    {nombre:'Claro internet', limite:30, valor:'$102.000'},
+    {nombre:'Claro celular', limite:30, valor:'$55.000'},
+  ];
+
+  pagos.forEach(p=>{
+    const diasRestantes = p.limite - dia;
+    if(diasRestantes < 0){
+      items.push({tipo:'danger', icon:'🔴', titulo: p.nombre + ' — VENCIDO', sub:'Debía pagarse antes del día '+p.limite});
+    } else if(diasRestantes <= 5){
+      items.push({tipo:'warn', icon:'🟡', titulo: p.nombre + ' — vence en '+diasRestantes+' día(s)', sub:'Antes del día '+p.limite+' · '+p.valor});
+    } else if(diasRestantes <= 10){
+      items.push({tipo:'info', icon:'🔵', titulo: p.nombre + ' — vence en '+diasRestantes+' días', sub:'Antes del día '+p.limite+' · '+p.valor});
+    }
+  });
+
+  // Citas próximas
+  const citas=getC();
+  citas.forEach(c=>{
+    const d=daysUntil(c.fecha);
+    if(d!==null && d>=0 && d<=7){
+      items.push({tipo: d<=1?'danger':'warn', icon:'🏥', titulo: (d===0?'¡HOY! ':d===1?'Mañana: ':'En '+d+' días: ')+c.medico, sub: fmtDate(c.fecha)+(c.lugar?' · '+c.lugar:'')});
+    }
+  });
+
+  // Medicamentos próximos refill
+  const meds=getM();
+  meds.forEach(m=>{
+    const d=daysUntil(m.proximo);
+    if(d!==null && d>=0 && d<=5){
+      items.push({tipo: d<=1?'danger':'warn', icon:'💊', titulo:'Refill: '+m.nombre+(d===0?' — ¡Hoy!':' — en '+d+' día(s)'), sub:'Próximo refill: '+fmtDate(m.proximo)});
+    } else if(d!==null && d<0){
+      items.push({tipo:'danger', icon:'💊', titulo:'Refill VENCIDO: '+m.nombre, sub:'Debía hacerse el '+fmtDate(m.proximo)});
+    }
+  });
+
+  if(items.length===0){
+    items.push({tipo:'ok', icon:'✅', titulo:'Todo al día', sub:'No hay pagos urgentes ni citas próximas en los próximos días.'});
+  }
+
+  // Render
+  const dateEl=document.getElementById('alert-date');
+  dateEl.textContent=hoy.toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  document.getElementById('alert-items').innerHTML=items.map(i=>
+    `<div class="alert-item alert-item-${i.tipo}">
+      <span class="alert-icon">${i.icon}</span>
+      <div class="alert-text"><strong>${i.titulo}</strong><span>${i.sub}</span></div>
+    </div>`
+  ).join('');
+
+  document.getElementById('alert-banner').style.display='flex';
+}
+
+// Inicializar — mostrar pestaña correcta en Safari
+(function(){
+  var tabs=['finanzas','referencias','medicamentos','citas'];
+  tabs.forEach(function(t){
+    var pane=document.getElementById('pane-'+t);
+    if(pane) pane.style.display = (t==='finanzas')?'block':'none';
+  });
+})();
+renderHistorial();
+renderMeds();
+renderCitas();
+mostrarBanner();
+renderMeds();
+renderCitas();
+</script>
+</body>
+</html>

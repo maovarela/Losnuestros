@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
+import { WhoDidIt } from "../_components/who-did-it";
 
 const MESES = [
   "Enero",
@@ -148,6 +149,9 @@ export default function FinanzasPage() {
   const { patientId, caregiverId } = useAppContext();
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [form, setForm] = useState<FormState>(emptyForm());
+  const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
+    null,
+  );
   const [saving, setSaving] = useState(false);
   const [savedFlag, setSavedFlag] = useState(false);
 
@@ -169,7 +173,9 @@ export default function FinanzasPage() {
     if (monthData === undefined) return;
     if (monthData === null) {
       setForm(emptyForm());
+      setResponsibleFor(null);
     } else {
+      setResponsibleFor(monthData.responsible_for ?? null);
       setForm({
         pension: String(monthData.pension),
         prima: monthData.prima ? String(monthData.prima) : "",
@@ -224,6 +230,7 @@ export default function FinanzasPage() {
       await upsert({
         patientId,
         updatedBy: caregiverId,
+        responsibleFor: responsibleFor ?? undefined,
         month_key: selectedMonth,
         pension: num(form.pension),
         prima: form.prima ? num(form.prima) : undefined,
@@ -440,6 +447,14 @@ export default function FinanzasPage() {
           />
         </div>
 
+        <div className="mt-4">
+          <WhoDidIt
+            value={responsibleFor}
+            onChange={setResponsibleFor}
+            label="¿Quién pagó este mes?"
+          />
+        </div>
+
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
           {savedFlag && (
             <div className="mr-auto text-xs text-green">Cambios guardados</div>
@@ -489,9 +504,20 @@ export default function FinanzasPage() {
         )}
         {monthData && monthData.updated_at && (
           <div className="mt-3 border-t border-border pt-2 text-xs text-text-2">
-            Actualizado {relativeTime(monthData.updated_at)}
-            {monthData.updated_by && monthData.updated_by !== caregiverId && (
-              <span> por otra cuidadora</span>
+            {monthData.responsible_for_name &&
+            monthData.responsible_for !== monthData.updated_by ? (
+              <>
+                Lo registró {monthData.updated_by_name ?? "alguien"} · lo pagó{" "}
+                <span className="font-medium text-text">
+                  {monthData.responsible_for_name}
+                </span>{" "}
+                {relativeTime(monthData.updated_at)}
+              </>
+            ) : (
+              <>
+                Actualizado por {monthData.updated_by_name ?? "alguien"}{" "}
+                {relativeTime(monthData.updated_at)}
+              </>
             )}
           </div>
         )}
@@ -551,7 +577,10 @@ export default function FinanzasPage() {
                         </button>
                         {m.updated_by_name && (
                           <div className="text-xs font-normal text-text-2">
-                            {m.updated_by_name}
+                            {m.responsible_for_name &&
+                            m.responsible_for !== m.updated_by
+                              ? `${m.updated_by_name} · lo pagó ${m.responsible_for_name}`
+                              : m.updated_by_name}
                           </div>
                         )}
                       </td>

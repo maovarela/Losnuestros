@@ -28,6 +28,7 @@ export default defineSchema({
     next_refill: v.optional(v.string()),
     notes: v.optional(v.string()),
     updated_by: v.optional(v.id("caregivers")),
+    responsible_for: v.optional(v.id("caregivers")),
     updated_at: v.number(),
   }).index("by_patient", ["patient_id"]),
 
@@ -40,6 +41,7 @@ export default defineSchema({
     next_appointment: v.optional(v.string()),
     notes: v.optional(v.string()),
     updated_by: v.optional(v.id("caregivers")),
+    responsible_for: v.optional(v.id("caregivers")),
     updated_at: v.number(),
   }).index("by_patient", ["patient_id"]),
 
@@ -86,6 +88,7 @@ export default defineSchema({
     saldo_banco: v.optional(v.number()),
     nota: v.optional(v.string()),
     updated_by: v.optional(v.id("caregivers")),
+    responsible_for: v.optional(v.id("caregivers")),
     updated_at: v.number(),
   })
     .index("by_patient_month", ["patient_id", "month_key"])

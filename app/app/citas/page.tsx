@@ -1,11 +1,11 @@
 "use client";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
+import { WhoDidIt } from "../_components/who-did-it";
 
 type FormState = {
   date: string;
@@ -58,6 +58,9 @@ export default function CitasPage() {
   const removeCita = useMutation(api.appointments.remove);
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
+    null,
+  );
   const [editingId, setEditingId] = useState<Id<"appointments"> | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -82,6 +85,7 @@ export default function CitasPage() {
       next_appointment: target.next_appointment ?? "",
       notes: target.notes ?? "",
     });
+    setResponsibleFor(target.responsible_for ?? null);
     setDateError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [searchParams, citas]);
@@ -115,6 +119,7 @@ export default function CitasPage() {
       next_appointment: cita.next_appointment ?? "",
       notes: cita.notes ?? "",
     });
+    setResponsibleFor(cita.responsible_for ?? null);
     setDateError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -122,6 +127,7 @@ export default function CitasPage() {
   function cancelEdit() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setResponsibleFor(null);
     setDateError(null);
   }
 
@@ -141,6 +147,7 @@ export default function CitasPage() {
         next_appointment: form.next_appointment || undefined,
         notes: form.notes.trim() || undefined,
         updatedBy: caregiverId,
+        responsibleFor: responsibleFor ?? undefined,
       };
       if (editingId) {
         await updateCita({ id: editingId, ...payload });
@@ -256,6 +263,11 @@ export default function CitasPage() {
               className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
+          <WhoDidIt
+            value={responsibleFor}
+            onChange={setResponsibleFor}
+            label="¿Quién llevó a la abuela?"
+          />
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
           {savedFlag && (
@@ -343,7 +355,20 @@ export default function CitasPage() {
                   <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
                     {showAttribution ? (
                       <div className="text-xs text-text-2">
-                        La actualizó {c.updated_by_name} {relativeTime(c.updated_at)}
+                        {c.responsible_for_name &&
+                        c.responsible_for !== c.updated_by ? (
+                          <>
+                            La registró {c.updated_by_name} · la llevó{" "}
+                            <span className="font-medium text-text">
+                              {c.responsible_for_name}
+                            </span>{" "}
+                            {relativeTime(c.updated_at)}
+                          </>
+                        ) : (
+                          <>
+                            La actualizó {c.updated_by_name} {relativeTime(c.updated_at)}
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="flex-1" />

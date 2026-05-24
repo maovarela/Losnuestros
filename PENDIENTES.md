@@ -26,12 +26,36 @@ Los fixes de impacto alto ya se aplicaron (em-dashes, contraste WCAG, tap target
 - **Manejo de errores de red en mutaciones.** Si Convex falla un `await upsert/create/update`, el catch silencioso deja a la cuidadora creyendo que se guardó. Mostrar banner rojo "No se pudo guardar. Revisa tu conexión e intenta de nuevo."
 - **Focus-visible rings consistentes en todos los controles.** Ya están en inputs, falta agregar a los botones para teclado/lectores de pantalla.
 
-## Tercer "usuario": la abuela
+## Vista de la abuela (super simple, solo-lectura)
 
-Mauricio quiere explorar incluir a Ana María de alguna forma. Tres caminos posibles, ordenados de más a menos viable dado el Alzheimer:
+Mauricio quiere darle a Ana María su propia entrada a la app. Por el Alzheimer no puede ser complicado; lo que ella siempre pregunta tiene un foco muy claro:
 
-- **Registro del día con la abuela (más realista).** No es la abuela como usuaria. Es una sección nueva donde Ingrid y Sandra anotan "le di Atorvastatina 8am", "se quejó del estómago", "durmió bien". Cierra el gap real: las cuidadoras no se enteran de lo que hizo la otra durante el día. Bajo riesgo, alta utilidad. Probablemente un schema `daily_notes` con fecha, texto, autora, timestamp.
-- **Pantalla pública en su habitación.** Tablet vieja siempre encendida en la URL `losnuestros.vercel.app/dia` (solo-lectura, sin auth). Fecha grande, próxima pastilla, próxima cita. No es ella usuaria, es información ambiental. Sirve mejor que pedirle que recuerde abrir una app. Requiere una tablet.
-- **Login propio para ella (más dudoso).** Otro link de invitación, vista hiper-simplificada con solo "hoy". Por el Alzheimer es difícil que lo use con consistencia y aprenda a navegar. Bajo retorno por la inversión.
+- **Su saldo en el banco** (siempre se preocupa por eso). Tomar el `saldo_banco` del mes en curso del row de `finance_months`, mostrarlo en grande.
+- **Qué medicamentos tiene que tomar hoy**. Lista de los 9 medicamentos con dosis y frecuencia, sin fechas de refill ni próximos pasos. Solo qué y cuándo.
+- **Sin acciones**. Cero botones de editar, marcar, agregar, borrar. Solo lectura. Texto grande, jerarquía única.
 
-Decisión pospuesta. Si se retoma, empezar por el primero.
+Tres formas de entregarla:
+- **Login propio con vista hiper-simplificada.** Otro link de invitación para ella, ruta tipo `/abuela` que solo muestra estas dos cosas. Si las cuidadoras la ayudan a guardar el link en la pantalla de inicio del celular, queda como un acceso directo.
+- **Pantalla pública en su habitación.** Tablet vieja siempre encendida en `losnuestros.vercel.app/abuela` (solo-lectura, sin auth, solo la patient default). Funciona como reloj inteligente para Alzheimer.
+- **Registro del día (no es la abuela como usuaria, sino una sección extra para las cuidadoras).** Donde Ingrid y Sandra anotan "le di Atorvastatina 8am", "se quejó del estómago", "durmió bien". Sigue siendo útil aunque la abuela no entre.
+
+Decisión pospuesta. Si se retoma, empezar por el camino 1 (login propio para ella) porque resuelve directamente lo que ella pregunta sin requerir hardware nuevo.
+
+## Agente de ingestion (foto + texto → DB)
+
+Hoy cuando llega un recetario nuevo o una cita por WhatsApp, Mauricio se lo pasa a Claude Code, Claude lo parsea y escribe la mutation a mano. Funciona pero requiere developer-in-the-loop.
+
+Idea: un agente que reciba fotos y texto libre directamente desde la app (o un canal dedicado) y haga la ingesta automatica.
+
+Casos de uso vistos hasta ahora:
+- **Recetarios de Compensar** (foto): nombre del medicamento, dosis, intervalo, duracion del tratamiento (175-180 dias), medico que prescribe. Mapear a la tabla `medications` (update si ya existe por nombre, crear si no).
+- **Mensajes de WhatsApp con citas** (texto libre): "Reumatologia - Mayo 28 - 11 AM, Sede 98 con 11". Parsear especialidad, fecha, hora, lugar. Mapear a `appointments`.
+- **Recibos de pago** (foto): valor, servicio, fecha. Mapear a `finance_months` (marcar `_paid = true`, ajustar el monto si difiere del registrado).
+
+Componentes:
+- **OCR + extraccion**: Claude Sonnet con vision via Anthropic SDK, prompt con few-shot examples del HTML spec y de la estructura de las tablas Convex.
+- **UI de confirmacion**: agente devuelve "voy a insertar esto, OK?". Cuidadora confirma o corrige antes de escribir.
+- **Canal**: upload de foto en `/app` (boton "Cargar receta o cita"), o webhook de WhatsApp si en el futuro hay numero dedicado.
+- **Idempotencia**: por nombre + fecha para no duplicar.
+
+Decision pospuesta hasta que la ingesta manual se vuelva fricciosa.

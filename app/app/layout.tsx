@@ -24,6 +24,13 @@ export default async function AppLayout({
 
   if (!patient || !caregiver) redirect("/");
 
+  const allCaregivers = await convex().query(api.caregivers.listByPatient, {
+    patientId: patient._id,
+  });
+  const otherCaregivers = allCaregivers
+    .filter((c) => c._id !== caregiver._id)
+    .map((c) => ({ id: c._id, name: c.name }));
+
   return (
     <ConvexClientProvider>
       <AppProvider
@@ -33,6 +40,7 @@ export default async function AppLayout({
           patientId: patient._id,
           patientName: patient.name,
           patientInitials: patient.avatar_initials,
+          otherCaregivers,
         }}
       >
         <div className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-12">

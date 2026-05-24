@@ -10,8 +10,15 @@ export const listByPatient = query({
       .collect();
     return await Promise.all(
       meds.map(async (m) => {
-        const caregiver = m.updated_by ? await ctx.db.get(m.updated_by) : null;
-        return { ...m, updated_by_name: caregiver?.name ?? null };
+        const updater = m.updated_by ? await ctx.db.get(m.updated_by) : null;
+        const responsible = m.responsible_for
+          ? await ctx.db.get(m.responsible_for)
+          : null;
+        return {
+          ...m,
+          updated_by_name: updater?.name ?? null,
+          responsible_for_name: responsible?.name ?? null,
+        };
       }),
     );
   },
@@ -30,13 +37,15 @@ export const create = mutation({
   args: {
     patientId: v.id("patients"),
     updatedBy: v.id("caregivers"),
+    responsibleFor: v.optional(v.id("caregivers")),
     ...fieldsValidator,
   },
   handler: async (ctx, args) => {
-    const { patientId, updatedBy, ...fields } = args;
+    const { patientId, updatedBy, responsibleFor, ...fields } = args;
     return await ctx.db.insert("medications", {
       patient_id: patientId,
       updated_by: updatedBy,
+      responsible_for: responsibleFor,
       updated_at: Date.now(),
       ...fields,
     });
@@ -47,13 +56,15 @@ export const update = mutation({
   args: {
     id: v.id("medications"),
     updatedBy: v.id("caregivers"),
+    responsibleFor: v.optional(v.id("caregivers")),
     ...fieldsValidator,
   },
   handler: async (ctx, args) => {
-    const { id, updatedBy, ...fields } = args;
+    const { id, updatedBy, responsibleFor, ...fields } = args;
     await ctx.db.patch(id, {
       ...fields,
       updated_by: updatedBy,
+      responsible_for: responsibleFor,
       updated_at: Date.now(),
     });
   },
@@ -91,6 +102,7 @@ export const markRefilled = mutation({
   args: {
     id: v.id("medications"),
     updatedBy: v.id("caregivers"),
+    responsibleFor: v.optional(v.id("caregivers")),
   },
   handler: async (ctx, args) => {
     const med = await ctx.db.get(args.id);
@@ -106,6 +118,7 @@ export const markRefilled = mutation({
       last_refill: today,
       next_refill: addDaysISO(today, interval),
       updated_by: args.updatedBy,
+      responsible_for: args.responsibleFor ?? args.updatedBy,
       updated_at: Date.now(),
     });
   },

@@ -10,8 +10,15 @@ export const listByPatient = query({
       .collect();
     return await Promise.all(
       items.map(async (a) => {
-        const caregiver = a.updated_by ? await ctx.db.get(a.updated_by) : null;
-        return { ...a, updated_by_name: caregiver?.name ?? null };
+        const updater = a.updated_by ? await ctx.db.get(a.updated_by) : null;
+        const responsible = a.responsible_for
+          ? await ctx.db.get(a.responsible_for)
+          : null;
+        return {
+          ...a,
+          updated_by_name: updater?.name ?? null,
+          responsible_for_name: responsible?.name ?? null,
+        };
       }),
     );
   },
@@ -30,13 +37,15 @@ export const create = mutation({
   args: {
     patientId: v.id("patients"),
     updatedBy: v.id("caregivers"),
+    responsibleFor: v.optional(v.id("caregivers")),
     ...fieldsValidator,
   },
   handler: async (ctx, args) => {
-    const { patientId, updatedBy, ...fields } = args;
+    const { patientId, updatedBy, responsibleFor, ...fields } = args;
     return await ctx.db.insert("appointments", {
       patient_id: patientId,
       updated_by: updatedBy,
+      responsible_for: responsibleFor,
       updated_at: Date.now(),
       ...fields,
     });
@@ -47,13 +56,15 @@ export const update = mutation({
   args: {
     id: v.id("appointments"),
     updatedBy: v.id("caregivers"),
+    responsibleFor: v.optional(v.id("caregivers")),
     ...fieldsValidator,
   },
   handler: async (ctx, args) => {
-    const { id, updatedBy, ...fields } = args;
+    const { id, updatedBy, responsibleFor, ...fields } = args;
     await ctx.db.patch(id, {
       ...fields,
       updated_by: updatedBy,
+      responsible_for: responsibleFor,
       updated_at: Date.now(),
     });
   },

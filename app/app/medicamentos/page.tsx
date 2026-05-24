@@ -1,11 +1,11 @@
 "use client";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
+import { WhoDidIt } from "../_components/who-did-it";
 
 type FormState = {
   name: string;
@@ -58,6 +58,9 @@ export default function MedicamentosPage() {
   const removeMed = useMutation(api.medications.remove);
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
+    null,
+  );
   const [editingId, setEditingId] = useState<Id<"medications"> | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -82,6 +85,7 @@ export default function MedicamentosPage() {
       next_refill: target.next_refill ?? "",
       notes: target.notes ?? "",
     });
+    setResponsibleFor(target.responsible_for ?? null);
     setNameError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [searchParams, meds]);
@@ -113,6 +117,7 @@ export default function MedicamentosPage() {
       next_refill: med.next_refill ?? "",
       notes: med.notes ?? "",
     });
+    setResponsibleFor(med.responsible_for ?? null);
     setNameError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -120,6 +125,7 @@ export default function MedicamentosPage() {
   function cancelEdit() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setResponsibleFor(null);
     setNameError(null);
   }
 
@@ -139,6 +145,7 @@ export default function MedicamentosPage() {
         next_refill: form.next_refill || undefined,
         notes: form.notes.trim() || undefined,
         updatedBy: caregiverId,
+        responsibleFor: responsibleFor ?? undefined,
       };
       if (editingId) {
         await updateMed({ id: editingId, ...payload });
@@ -271,6 +278,11 @@ export default function MedicamentosPage() {
               className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
+          <WhoDidIt
+            value={responsibleFor}
+            onChange={setResponsibleFor}
+            label="¿Quién hizo el refill?"
+          />
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
           {savedFlag && (
@@ -357,7 +369,20 @@ export default function MedicamentosPage() {
                   <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
                     {showAttribution ? (
                       <div className="text-xs text-text-2">
-                        Lo actualizó {m.updated_by_name} {relativeTime(m.updated_at)}
+                        {m.responsible_for_name &&
+                        m.responsible_for !== m.updated_by ? (
+                          <>
+                            Lo registró {m.updated_by_name} · lo hizo{" "}
+                            <span className="font-medium text-text">
+                              {m.responsible_for_name}
+                            </span>{" "}
+                            {relativeTime(m.updated_at)}
+                          </>
+                        ) : (
+                          <>
+                            Lo actualizó {m.updated_by_name} {relativeTime(m.updated_at)}
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="flex-1" />

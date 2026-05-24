@@ -103,6 +103,7 @@ type RecentItem = {
   key: string;
   updatedAt: number;
   caregiver: string | null;
+  responsible: string | null;
   verb: string;
   subject: string;
   href: string;
@@ -233,10 +234,15 @@ export default function ResumenPage() {
     if (meds) {
       for (const m of meds) {
         if (m.updated_at < since || !m.updated_by) continue;
+        const responsible =
+          m.responsible_for && m.responsible_for !== m.updated_by
+            ? m.responsible_for_name
+            : null;
         out.push({
           key: `r-med-${m._id}-${m.updated_at}`,
           updatedAt: m.updated_at,
           caregiver: m.updated_by_name,
+          responsible,
           verb: "actualizó",
           subject: m.name,
           href: `/app/medicamentos?edit=${m._id}`,
@@ -247,10 +253,15 @@ export default function ResumenPage() {
     if (citas) {
       for (const c of citas) {
         if (c.updated_at < since || !c.updated_by) continue;
+        const responsible =
+          c.responsible_for && c.responsible_for !== c.updated_by
+            ? c.responsible_for_name
+            : null;
         out.push({
           key: `r-cita-${c._id}-${c.updated_at}`,
           updatedAt: c.updated_at,
           caregiver: c.updated_by_name,
+          responsible,
           verb: "actualizó",
           subject: `cita ${c.doctor ?? fmtDate(c.date)}`,
           href: `/app/citas?edit=${c._id}`,
@@ -261,10 +272,15 @@ export default function ResumenPage() {
     if (financeHistory) {
       for (const f of financeHistory) {
         if (f.updated_at < since || !f.updated_by) continue;
+        const responsible =
+          f.responsible_for && f.responsible_for !== f.updated_by
+            ? f.responsible_for_name
+            : null;
         out.push({
           key: `r-fin-${f._id}-${f.updated_at}`,
           updatedAt: f.updated_at,
-          caregiver: null,
+          caregiver: f.updated_by_name,
+          responsible,
           verb: "registró",
           subject: monthLabel(f.month_key),
           href: `/app/finanzas`,
@@ -358,6 +374,15 @@ export default function ResumenPage() {
                       <span className="font-medium">{r.subject}</span>
                     </div>
                     <div className="mt-0.5 text-xs text-text-2">
+                      {r.responsible && (
+                        <>
+                          lo hizo{" "}
+                          <span className="font-medium text-text">
+                            {r.responsible}
+                          </span>{" "}
+                          ·{" "}
+                        </>
+                      )}
                       {relativeTime(r.updatedAt)}
                     </div>
                   </Link>

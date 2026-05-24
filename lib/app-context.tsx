@@ -2,12 +2,18 @@
 import { createContext, ReactNode, useContext } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
 
+export type OtherCaregiver = {
+  id: Id<"caregivers">;
+  name: string;
+};
+
 export type AppContextValue = {
   caregiverId: Id<"caregivers">;
   caregiverName: string;
   patientId: Id<"patients">;
   patientName: string;
   patientInitials: string;
+  otherCaregivers: OtherCaregiver[];
 };
 
 const AppContext = createContext<AppContextValue | null>(null);

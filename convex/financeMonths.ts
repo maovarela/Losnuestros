@@ -10,8 +10,15 @@ export const listByPatient = query({
       .collect();
     const enriched = await Promise.all(
       items.map(async (m) => {
-        const c = m.updated_by ? await ctx.db.get(m.updated_by) : null;
-        return { ...m, updated_by_name: c?.name ?? null };
+        const updater = m.updated_by ? await ctx.db.get(m.updated_by) : null;
+        const responsible = m.responsible_for
+          ? await ctx.db.get(m.responsible_for)
+          : null;
+        return {
+          ...m,
+          updated_by_name: updater?.name ?? null,
+          responsible_for_name: responsible?.name ?? null,
+        };
       }),
     );
     return enriched.sort((a, b) => b.month_key.localeCompare(a.month_key));
@@ -21,12 +28,22 @@ export const listByPatient = query({
 export const getByMonth = query({
   args: { patientId: v.id("patients"), monthKey: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const m = await ctx.db
       .query("finance_months")
       .withIndex("by_patient_month", (q) =>
         q.eq("patient_id", args.patientId).eq("month_key", args.monthKey),
       )
       .first();
+    if (!m) return null;
+    const updater = m.updated_by ? await ctx.db.get(m.updated_by) : null;
+    const responsible = m.responsible_for
+      ? await ctx.db.get(m.responsible_for)
+      : null;
+    return {
+      ...m,
+      updated_by_name: updater?.name ?? null,
+      responsible_for_name: responsible?.name ?? null,
+    };
   },
 });
 
@@ -60,10 +77,11 @@ export const upsert = mutation({
   args: {
     patientId: v.id("patients"),
     updatedBy: v.id("caregivers"),
+    responsibleFor: v.optional(v.id("caregivers")),
     ...fieldsValidator,
   },
   handler: async (ctx, args) => {
-    const { patientId, updatedBy, ...fields } = args;
+    const { patientId, updatedBy, responsibleFor, ...fields } = args;
     const existing = await ctx.db
       .query("finance_months")
       .withIndex("by_patient_month", (q) =>
@@ -75,6 +93,7 @@ export const upsert = mutation({
       await ctx.db.patch(existing._id, {
         ...fields,
         updated_by: updatedBy,
+        responsible_for: responsibleFor,
         updated_at: Date.now(),
       });
       return existing._id;
@@ -82,6 +101,7 @@ export const upsert = mutation({
     return await ctx.db.insert("finance_months", {
       patient_id: patientId,
       updated_by: updatedBy,
+      responsible_for: responsibleFor,
       updated_at: Date.now(),
       ...fields,
     });
@@ -124,6 +144,7 @@ export const markServicePaid = mutation({
   args: {
     patientId: v.id("patients"),
     updatedBy: v.id("caregivers"),
+    responsibleFor: v.optional(v.id("caregivers")),
     monthKey: v.string(),
     service: v.union(
       v.literal("compensar"),
@@ -136,6 +157,7 @@ export const markServicePaid = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const responsible = args.responsibleFor ?? args.updatedBy;
     const existing = await ctx.db
       .query("finance_months")
       .withIndex("by_patient_month", (q) =>
@@ -148,6 +170,7 @@ export const markServicePaid = mutation({
       await ctx.db.patch(existing._id, {
         [field]: true,
         updated_by: args.updatedBy,
+        responsible_for: responsible,
         updated_at: Date.now(),
       });
       return existing._id;
@@ -176,6 +199,7 @@ export const markServicePaid = mutation({
       mercado: DEFAULTS.mercado,
       varios: DEFAULTS.varios,
       updated_by: args.updatedBy,
+      responsible_for: responsible,
       updated_at: Date.now(),
     });
   },

@@ -285,3 +285,48 @@ export const initial = mutation({
     };
   },
 });
+
+export const addCitasMay2026 = mutation({
+  handler: async (ctx) => {
+    const patient = await ctx.db.query("patients").first();
+    if (!patient) throw new Error("no patient");
+
+    const ingrid = await ctx.db
+      .query("caregivers")
+      .filter((q) => q.eq(q.field("name"), "Ingrid Perez"))
+      .first();
+
+    const citas = [
+      {
+        date: "2026-05-26",
+        doctor: "Sicología",
+        location: "Sede 98 con 11 · 11:40 AM",
+      },
+      {
+        date: "2026-05-26",
+        doctor: "Nutrición",
+        location: "Sede 98 con 11 · 12:40 PM",
+      },
+      {
+        date: "2026-05-28",
+        doctor: "Reumatología",
+        location: "Sede 98 con 11 · 11:00 AM",
+      },
+    ];
+
+    let added = 0;
+    for (const c of citas) {
+      await ctx.db.insert("appointments", {
+        patient_id: patient._id,
+        date: c.date,
+        doctor: c.doctor,
+        location: c.location,
+        updated_by: ingrid?._id,
+        updated_at: Date.now(),
+      });
+      added++;
+    }
+
+    return { added };
+  },
+});

@@ -8,6 +8,7 @@ const TABS = [
   { href: "/app/referencias", label: "Referencias de pago" },
   { href: "/app/medicamentos", label: "Medicamentos" },
   { href: "/app/citas", label: "Citas médicas" },
+  { href: "/app/ingestar", label: "Ingestar" },
 ];
 
 export function Tabs() {

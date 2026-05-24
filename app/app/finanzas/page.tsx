@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -98,6 +98,7 @@ type FormState = {
   caja: string;
   mercado: string;
   varios: string;
+  saldo_inicial: string;
   saldo_banco: string;
   nota: string;
 };
@@ -124,6 +125,7 @@ function emptyForm(): FormState {
     caja: String(DEFAULTS.caja),
     mercado: String(DEFAULTS.mercado),
     varios: "",
+    saldo_inicial: "",
     saldo_banco: "",
     nota: "",
   };
@@ -169,39 +171,62 @@ export default function FinanzasPage() {
     return () => clearTimeout(t);
   }, [savedFlag]);
 
+  const initializedFor = useRef<string | null>(null);
+
   useEffect(() => {
-    if (monthData === undefined) return;
+    if (monthData === undefined || history === undefined) return;
+    if (initializedFor.current === selectedMonth) return;
+    initializedFor.current = selectedMonth;
+
+    const previousFinal = history
+      .filter(
+        (m) => m.month_key < selectedMonth && m.saldo_banco !== undefined,
+      )
+      .sort((a, b) => b.month_key.localeCompare(a.month_key))[0]?.saldo_banco;
+
     if (monthData === null) {
-      setForm(emptyForm());
+      const empty = emptyForm();
+      if (previousFinal !== undefined) {
+        empty.saldo_inicial = String(previousFinal);
+      }
+      setForm(empty);
       setResponsibleFor(null);
-    } else {
-      setResponsibleFor(monthData.responsible_for ?? null);
-      setForm({
-        pension: String(monthData.pension),
-        prima: monthData.prima ? String(monthData.prima) : "",
-        compensar: String(monthData.compensar),
-        compensar_paid: monthData.compensar_paid,
-        enel: String(monthData.enel),
-        enel_paid: monthData.enel_paid,
-        gas: String(monthData.gas),
-        gas_paid: monthData.gas_paid,
-        agua: monthData.agua ? String(monthData.agua) : "",
-        agua_paid: monthData.agua_paid,
-        internet: String(monthData.internet),
-        internet_paid: monthData.internet_paid,
-        celular: String(monthData.celular),
-        celular_paid: monthData.celular_paid,
-        alarma: monthData.alarma ? String(monthData.alarma) : "",
-        alarma_paid: monthData.alarma_paid,
-        empleada: String(monthData.empleada),
-        caja: String(monthData.caja),
-        mercado: String(monthData.mercado),
-        varios: monthData.varios ? String(monthData.varios) : "",
-        saldo_banco: monthData.saldo_banco ? String(monthData.saldo_banco) : "",
-        nota: monthData.nota ?? "",
-      });
+      return;
     }
-  }, [monthData]);
+
+    setResponsibleFor(monthData.responsible_for ?? null);
+    const inicialFallback =
+      monthData.saldo_inicial != null
+        ? String(monthData.saldo_inicial)
+        : previousFinal != null
+          ? String(previousFinal)
+          : "";
+    setForm({
+      pension: String(monthData.pension),
+      prima: monthData.prima ? String(monthData.prima) : "",
+      compensar: String(monthData.compensar),
+      compensar_paid: monthData.compensar_paid,
+      enel: String(monthData.enel),
+      enel_paid: monthData.enel_paid,
+      gas: String(monthData.gas),
+      gas_paid: monthData.gas_paid,
+      agua: monthData.agua ? String(monthData.agua) : "",
+      agua_paid: monthData.agua_paid,
+      internet: String(monthData.internet),
+      internet_paid: monthData.internet_paid,
+      celular: String(monthData.celular),
+      celular_paid: monthData.celular_paid,
+      alarma: monthData.alarma ? String(monthData.alarma) : "",
+      alarma_paid: monthData.alarma_paid,
+      empleada: String(monthData.empleada),
+      caja: String(monthData.caja),
+      mercado: String(monthData.mercado),
+      varios: monthData.varios ? String(monthData.varios) : "",
+      saldo_inicial: inicialFallback,
+      saldo_banco: monthData.saldo_banco ? String(monthData.saldo_banco) : "",
+      nota: monthData.nota ?? "",
+    });
+  }, [monthData, history, selectedMonth]);
 
   const totals = useMemo(() => {
     const ingreso = num(form.pension) + num(form.prima);
@@ -217,11 +242,24 @@ export default function FinanzasPage() {
       num(form.caja) +
       num(form.mercado) +
       num(form.varios);
-    const teorico = ingreso - gastos;
-    const banco = num(form.saldo_banco);
-    const dif = banco - teorico;
-    const hasBanco = form.saldo_banco.trim() !== "";
-    return { ingreso, gastos, teorico, banco, dif, hasBanco };
+    const movimiento_esperado = ingreso - gastos;
+    const inicial = num(form.saldo_inicial);
+    const final = num(form.saldo_banco);
+    const hasInicial = form.saldo_inicial.trim() !== "";
+    const hasFinal = form.saldo_banco.trim() !== "";
+    const esperado_final = inicial + movimiento_esperado;
+    const dif = hasInicial && hasFinal ? final - esperado_final : 0;
+    return {
+      ingreso,
+      gastos,
+      movimiento_esperado,
+      inicial,
+      final,
+      esperado_final,
+      dif,
+      hasInicial,
+      hasFinal,
+    };
   }, [form]);
 
   async function handleSave() {
@@ -252,6 +290,9 @@ export default function FinanzasPage() {
         caja: num(form.caja),
         mercado: num(form.mercado),
         varios: num(form.varios),
+        saldo_inicial: form.saldo_inicial.trim()
+          ? num(form.saldo_inicial)
+          : undefined,
         saldo_banco: form.saldo_banco.trim() ? num(form.saldo_banco) : undefined,
         nota: form.nota.trim() || undefined,
       });
@@ -413,17 +454,48 @@ export default function FinanzasPage() {
         </div>
 
         <div className="mt-5 rounded-lg border border-border-2 p-3">
-          <div className="text-sm font-medium">
-            ¿Cuánto te quedó en el banco al final del mes?
-          </div>
+          <div className="text-sm font-medium">Saldo en el banco</div>
           <p className="mt-1 text-xs text-text-2">
-            Cuando ya hayas pagado todas las facturas, mira tu cuenta y escribe acá
-            lo que quedó. La app revisa que cuadre con lo que registraste arriba y
-            te avisa si falta o sobra plata.
+            La app necesita dos cifras para verificar: lo que había en la cuenta
+            al empezar el mes y lo que quedó después de pagar todo. Con eso
+            avisa si falta o sobra plata.
           </p>
+
+          <div className="mt-3 flex items-center justify-between gap-2 border-b border-border pb-3">
+            <div>
+              <div className="text-sm text-text">Al empezar el mes</div>
+              <div className="text-xs text-text-2">
+                Lo que tenías antes de que llegara la pensión
+              </div>
+            </div>
+            <div className="relative flex shrink-0 items-center">
+              <span className="pointer-events-none absolute left-3 text-sm text-text-2">
+                $
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={formatThousands(form.saldo_inicial)}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    saldo_inicial: digitsOnly(e.target.value),
+                  })
+                }
+                placeholder=""
+                className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+              />
+            </div>
+          </div>
+
           <div className="mt-3 flex items-center justify-between gap-2">
-            <span className="text-sm text-text-2">Saldo final</span>
-            <div className="relative flex items-center">
+            <div>
+              <div className="text-sm text-text">Al cerrar el mes</div>
+              <div className="text-xs text-text-2">
+                Lo que quedó después de pagar todo
+              </div>
+            </div>
+            <div className="relative flex shrink-0 items-center">
               <span className="pointer-events-none absolute left-3 text-sm text-text-2">
                 $
               </span>
@@ -481,26 +553,38 @@ export default function FinanzasPage() {
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Metric label="Ingreso" value={fmtCOP(totals.ingreso)} className="text-green" />
           <Metric label="Gastos" value={fmtCOP(totals.gastos)} className="text-red" />
-          <Metric
-            label="Saldo teórico"
-            value={fmtCOP(totals.teorico)}
-            className="text-text-2"
-            sub="calculado"
-          />
-          {totals.hasBanco && (
+          {totals.hasInicial && (
             <Metric
-              label="Saldo banco"
-              value={fmtCOP(totals.banco)}
+              label="Banco al empezar"
+              value={fmtCOP(totals.inicial)}
+              className="text-text-2"
+            />
+          )}
+          {totals.hasFinal && (
+            <Metric
+              label="Banco al cerrar"
+              value={fmtCOP(totals.final)}
               className={difClass}
-              sub="confirmado"
             />
           )}
         </div>
-        {totals.hasBanco && (
-          <div className="mt-3 rounded-lg border border-border-2 p-3 text-sm">
+        {totals.hasInicial && totals.hasFinal && (
+          <div className="mt-3 space-y-1 rounded-lg border border-border-2 p-3 text-sm">
             <div className="flex items-baseline justify-between">
+              <span className="text-text-2">Lo que debería tener al cerrar</span>
+              <span className="font-medium tabular-nums">
+                {fmtCOP(totals.esperado_final)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-text-2">Lo que dice tu banco</span>
+              <span className="font-medium tabular-nums">
+                {fmtCOP(totals.final)}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between border-t border-border pt-1">
               <span className="text-text-2">Diferencia</span>
-              <span className={`font-medium ${difClass}`}>
+              <span className={`font-medium tabular-nums ${difClass}`}>
                 {totals.dif >= 0 ? "+" : ""}
                 {fmtCOP(totals.dif)} · {difLabel}
               </span>
@@ -540,8 +624,8 @@ export default function FinanzasPage() {
                   <th className="px-3 py-2 text-left">Mes</th>
                   <th className="px-3 py-2 text-right">Ingreso</th>
                   <th className="px-3 py-2 text-right">Gastos</th>
-                  <th className="px-3 py-2 text-right">Teórico</th>
-                  <th className="px-3 py-2 text-right">Banco</th>
+                  <th className="px-3 py-2 text-right">Inicial</th>
+                  <th className="px-3 py-2 text-right">Final</th>
                   <th className="px-3 py-2"></th>
                 </tr>
               </thead>
@@ -560,17 +644,22 @@ export default function FinanzasPage() {
                     m.caja +
                     m.mercado +
                     m.varios;
-                  const teorico = ingreso - gastos;
-                  const banco = m.saldo_banco ?? 0;
-                  const dif = banco - teorico;
-                  const hasBanco = m.saldo_banco !== undefined;
-                  const cls = !hasBanco
-                    ? "text-text-2"
-                    : Math.abs(dif) < 10000
-                      ? "text-green"
-                      : dif < 0
-                        ? "text-red"
-                        : "text-amber";
+                  const inicial = m.saldo_inicial ?? 0;
+                  const finalSaldo = m.saldo_banco ?? 0;
+                  const hasInicial = m.saldo_inicial !== undefined;
+                  const hasFinal = m.saldo_banco !== undefined;
+                  const dif =
+                    hasInicial && hasFinal
+                      ? finalSaldo - (inicial + ingreso - gastos)
+                      : 0;
+                  const finalCls =
+                    !hasFinal || !hasInicial
+                      ? "text-text-2"
+                      : Math.abs(dif) < 10000
+                        ? "text-green"
+                        : dif < 0
+                          ? "text-red"
+                          : "text-amber";
                   return (
                     <tr key={m._id} className="border-b border-border last:border-0">
                       <td className="px-3 py-2 font-medium">
@@ -596,10 +685,10 @@ export default function FinanzasPage() {
                         {fmtCOP(gastos)}
                       </td>
                       <td className="px-3 py-2 text-right text-text-2">
-                        {fmtCOP(teorico)}
+                        {hasInicial ? fmtCOP(inicial) : "Sin dato"}
                       </td>
-                      <td className={`px-3 py-2 text-right ${cls}`}>
-                        {hasBanco ? fmtCOP(banco) : "Sin dato"}
+                      <td className={`px-3 py-2 text-right ${finalCls}`}>
+                        {hasFinal ? fmtCOP(finalSaldo) : "Sin dato"}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <button
@@ -616,7 +705,7 @@ export default function FinanzasPage() {
             </table>
           </div>
           <div className="mt-2 text-xs text-text-2">
-            Teórico es ingresos menos gastos. Diferencia mayor a $10.000 con el banco aparece en amarillo o rojo.
+            La diferencia entre lo que la app calcula (inicial + pensión menos gastos) y el saldo final real se pinta en amarillo o rojo si supera $10.000.
           </div>
         </div>
       )}

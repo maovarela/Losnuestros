@@ -1,40 +1,48 @@
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
-import { convex } from "@/lib/convex-server";
-import { getSession } from "@/lib/session-server";
+"use client";
+import Link from "next/link";
+import { useAppContext } from "@/lib/app-context";
 
-export const dynamic = "force-dynamic";
-
-export default async function AppHome() {
-  const session = await getSession();
-  if (!session) return null;
-
-  const [patient, caregiver] = await Promise.all([
-    convex().query(api.patients.getDefault, {}),
-    convex().query(api.caregivers.getById, {
-      id: session.caregiverId as Id<"caregivers">,
-    }),
-  ]);
+export default function AppHome() {
+  const { patientName, patientInitials, caregiverName } = useAppContext();
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-10">
+    <div className="mx-auto w-full max-w-[720px] px-4 py-6">
       <div className="flex items-center gap-4 rounded-xl border border-border bg-bg-2 px-6 py-5">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-bg text-base font-medium text-blue">
-          {patient?.avatar_initials ?? "AO"}
+          {patientInitials}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-lg font-medium">{patient?.name}</div>
-          {caregiver && (
-            <div className="text-sm text-text-2">
-              Sesión: <span className="font-medium text-text">{caregiver.name}</span>
-            </div>
-          )}
+          <div className="truncate text-lg font-medium">{patientName}</div>
+          <div className="text-sm text-text-2">
+            Sesión: <span className="font-medium text-text">{caregiverName}</span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-border bg-bg p-6">
-        <div className="text-sm text-text-2">
-          Los tabs (Medicamentos, Citas, Referencias, Finanzas) llegan en las próximas fases.
+      <div className="mt-6 space-y-3">
+        <Link
+          href="/app/medicamentos"
+          className="block rounded-xl border border-border bg-bg p-5 transition-colors hover:bg-bg-2"
+        >
+          <div className="text-base font-medium">Medicamentos</div>
+          <div className="mt-1 text-sm text-text-2">
+            Lista, refills y alertas
+          </div>
+        </Link>
+
+        <div className="rounded-xl border border-border bg-bg p-5 opacity-50">
+          <div className="text-base font-medium">Citas médicas</div>
+          <div className="mt-1 text-sm text-text-2">Próximamente</div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-bg p-5 opacity-50">
+          <div className="text-base font-medium">Referencias de pago</div>
+          <div className="mt-1 text-sm text-text-2">Próximamente</div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-bg p-5 opacity-50">
+          <div className="text-base font-medium">Finanzas mensuales</div>
+          <div className="mt-1 text-sm text-text-2">Próximamente</div>
         </div>
       </div>
     </div>

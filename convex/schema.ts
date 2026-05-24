@@ -18,4 +18,16 @@ export default defineSchema({
     expires_at: v.number(),
     consumed_at: v.optional(v.number()),
   }).index("by_token", ["token"]),
+
+  medications: defineTable({
+    patient_id: v.id("patients"),
+    name: v.string(),
+    dosage: v.optional(v.string()),
+    doctor: v.optional(v.string()),
+    last_refill: v.optional(v.string()),
+    next_refill: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    updated_by: v.optional(v.id("caregivers")),
+    updated_at: v.number(),
+  }).index("by_patient", ["patient_id"]),
 });

@@ -130,8 +130,19 @@ function emptyForm(): FormState {
 }
 
 function num(s: string): number {
-  const n = parseFloat(s);
+  const digits = s.replace(/\D/g, "");
+  const n = parseInt(digits, 10);
   return isNaN(n) ? 0 : n;
+}
+
+function formatThousands(s: string): string {
+  const digits = s.replace(/\D/g, "");
+  if (!digits) return "";
+  return parseInt(digits, 10).toLocaleString("es-CO");
+}
+
+function digitsOnly(s: string): string {
+  return s.replace(/\D/g, "");
 }
 
 export default function FinanzasPage() {
@@ -410,14 +421,21 @@ export default function FinanzasPage() {
           </div>
           <div className="mt-2 flex items-center justify-between gap-2">
             <span className="text-sm text-text-2">Saldo en banco</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              value={form.saldo_banco}
-              onChange={(e) => setForm({ ...form, saldo_banco: e.target.value })}
-              placeholder="0"
-              className="w-40 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-right text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-            />
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3 text-sm text-text-2">
+                $
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={formatThousands(form.saldo_banco)}
+                onChange={(e) =>
+                  setForm({ ...form, saldo_banco: digitsOnly(e.target.value) })
+                }
+                placeholder="0"
+                className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+              />
+            </div>
           </div>
         </div>
 
@@ -607,14 +625,19 @@ function MoneyRow({
   return (
     <div className="flex items-center justify-between gap-2 border-b border-border pb-2 last:border-0">
       <span className="text-sm text-text-2">{label}</span>
-      <input
-        type="number"
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder ?? "0"}
-        className="w-40 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-right text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-      />
+      <div className="relative flex items-center">
+        <span className="pointer-events-none absolute left-3 text-sm text-text-2">
+          $
+        </span>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={formatThousands(value)}
+          onChange={(e) => onChange(digitsOnly(e.target.value))}
+          placeholder={placeholder ?? "0"}
+          className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+        />
+      </div>
     </div>
   );
 }
@@ -636,14 +659,19 @@ function MoneyPaidRow({
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-0">
       <span className="text-sm text-text-2">{label}</span>
       <div className="flex items-center gap-3">
-        <input
-          type="number"
-          inputMode="numeric"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="0"
-          className="w-32 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-right text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-        />
+        <div className="relative flex items-center">
+          <span className="pointer-events-none absolute left-3 text-sm text-text-2">
+            $
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={formatThousands(value)}
+            onChange={(e) => onChange(digitsOnly(e.target.value))}
+            placeholder="0"
+            className="w-36 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          />
+        </div>
         <label className="flex min-h-11 items-center gap-2 text-sm text-text-2">
           <input
             type="checkbox"

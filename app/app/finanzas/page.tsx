@@ -798,9 +798,9 @@ function MoneyPaidRow({
   onPaid: (p: boolean) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-0">
-      <span className="text-sm text-text-2">{label}</span>
-      <div className="flex items-center gap-3">
+    <div className="border-b border-border pb-3 last:border-0">
+      <div className="text-sm text-text-2">{label}</div>
+      <div className="mt-2 flex items-center justify-between gap-3">
         <div className="relative flex items-center">
           <span className="pointer-events-none absolute left-3 text-sm text-text-2">
             $
@@ -811,7 +811,7 @@ function MoneyPaidRow({
             value={formatThousands(value)}
             onChange={(e) => onChange(digitsOnly(e.target.value))}
             placeholder="0"
-            className="w-36 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           />
         </div>
         <label className="flex min-h-11 items-center gap-2 text-sm text-text-2">

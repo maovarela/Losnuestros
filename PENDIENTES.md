@@ -19,7 +19,7 @@ Cobertura ideal: además de alertas de medicamentos, también citas próximas (�
 
 ## UI: items diferidos del audit
 
-Los fixes de impacto alto ya se aplicaron (em-dashes, contraste WCAG, tap targets, voseo a tuteo, agrupación de finanzas, atribución filtrada al otro cuidador, banner de "Cambios guardados"). Lo que quedó pendiente:
+Los fixes de impacto alto ya se aplicaron (em-dashes, contraste WCAG, tap targets, voseo a tuteo, agrupación de finanzas, banner de "Cambios guardados", formato de miles en pesos, CTAs en alertas, restauración de tabs estilo HTML original con tab Resumen como default, atribución siempre visible en historiales). Lo que quedó pendiente:
 
 - **Modal custom para confirmaciones y validaciones.** Hoy usa `window.confirm()` y mensaje inline. El modal nativo se ve distinto en cada OS y no respeta el tono de la app. Modal propio en español con botones grandes claramente diferenciados (rojo para borrar).
 - **Lista antes que el formulario en medicamentos y citas.** Hoy el form ocupa la parte alta y empuja la lista. Si la cuidadora abre solo para consultar, tiene que scrollear. Alternativas: form colapsado en acordeón, o lista arriba y form como botón sticky al final.

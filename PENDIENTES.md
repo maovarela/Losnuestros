@@ -26,3 +26,13 @@ Los fixes de impacto alto ya se aplicaron (em-dashes, contraste WCAG, tap target
 - **Lista antes que el formulario en medicamentos y citas.** Hoy el form ocupa la parte alta y empuja la lista. Si la cuidadora abre solo para consultar, tiene que scrollear. Alternativas: form colapsado en acordeón, o lista arriba y form como botón sticky al final.
 - **Manejo de errores de red en mutaciones.** Si Convex falla un `await upsert/create/update`, el catch silencioso deja a la cuidadora creyendo que se guardó. Mostrar banner rojo "No se pudo guardar. Revisa tu conexión e intenta de nuevo."
 - **Focus-visible rings consistentes en todos los controles.** Ya están en inputs, falta agregar a los botones para teclado/lectores de pantalla.
+
+## Tercer "usuario": la abuela
+
+Mauricio quiere explorar incluir a Ana María de alguna forma. Tres caminos posibles, ordenados de más a menos viable dado el Alzheimer:
+
+- **Registro del día con la abuela (más realista).** No es la abuela como usuaria. Es una sección nueva donde Ingrid y Sandra anotan "le di Atorvastatina 8am", "se quejó del estómago", "durmió bien". Cierra el gap real: las cuidadoras no se enteran de lo que hizo la otra durante el día. Bajo riesgo, alta utilidad. Probablemente un schema `daily_notes` con fecha, texto, autora, timestamp.
+- **Pantalla pública en su habitación.** Tablet vieja siempre encendida en la URL `losnuestros.vercel.app/dia` (solo-lectura, sin auth). Fecha grande, próxima pastilla, próxima cita. No es ella usuaria, es información ambiental. Sirve mejor que pedirle que recuerde abrir una app. Requiere una tablet.
+- **Login propio para ella (más dudoso).** Otro link de invitación, vista hiper-simplificada con solo "hoy". Por el Alzheimer es difícil que lo use con consistencia y aprenda a navegar. Bajo retorno por la inversión.
+
+Decisión pospuesta. Si se retoma, empezar por el primero.

@@ -30,10 +30,15 @@ export default function AppHome() {
           </div>
         </Link>
 
-        <div className="rounded-xl border border-border bg-bg p-5 opacity-50">
+        <Link
+          href="/app/citas"
+          className="block rounded-xl border border-border bg-bg p-5 transition-colors hover:bg-bg-2"
+        >
           <div className="text-base font-medium">Citas médicas</div>
-          <div className="mt-1 text-sm text-text-2">Próximamente</div>
-        </div>
+          <div className="mt-1 text-sm text-text-2">
+            Historial y próxima cita
+          </div>
+        </Link>
 
         <div className="rounded-xl border border-border bg-bg p-5 opacity-50">
           <div className="text-base font-medium">Referencias de pago</div>

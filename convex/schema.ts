@@ -30,4 +30,16 @@ export default defineSchema({
     updated_by: v.optional(v.id("caregivers")),
     updated_at: v.number(),
   }).index("by_patient", ["patient_id"]),
+
+  appointments: defineTable({
+    patient_id: v.id("patients"),
+    date: v.string(),
+    doctor: v.optional(v.string()),
+    reason: v.optional(v.string()),
+    location: v.optional(v.string()),
+    next_appointment: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    updated_by: v.optional(v.id("caregivers")),
+    updated_at: v.number(),
+  }).index("by_patient", ["patient_id"]),
 });

@@ -10,6 +10,15 @@ function randomToken(): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+const CITAS_INICIALES = [
+  {
+    date: "2026-06-05",
+    doctor: "Neurología · Dra. María Isabel Medina De Bedoya",
+    reason: "Control neurológico",
+    location: "Piso 11 · Consultorio 22 · Edificio El Bosque · 11:00 AM",
+  },
+];
+
 const MEDS_INICIALES = [
   {
     name: "Rivastigmina 9.5mg/24h parche transdérmico",
@@ -138,10 +147,27 @@ export const initial = mutation({
       }
     }
 
+    const existingAppt = await ctx.db.query("appointments").first();
+    let appointmentsAdded = 0;
+    if (!existingAppt) {
+      for (const a of CITAS_INICIALES) {
+        await ctx.db.insert("appointments", {
+          patient_id: patient._id,
+          date: a.date,
+          doctor: a.doctor,
+          reason: a.reason,
+          location: a.location,
+          updated_at: Date.now(),
+        });
+        appointmentsAdded++;
+      }
+    }
+
     return {
       patient: patient.name,
       newInvitations,
       medicationsAdded: medsAdded,
+      appointmentsAdded,
     };
   },
 });

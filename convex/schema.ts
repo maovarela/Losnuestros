@@ -85,7 +85,6 @@ export default defineSchema({
     caja: v.number(),
     mercado: v.number(),
     varios: v.number(),
-    saldo_inicial: v.optional(v.number()),
     saldo_banco: v.optional(v.number()),
     nota: v.optional(v.string()),
     updated_by: v.optional(v.id("caregivers")),

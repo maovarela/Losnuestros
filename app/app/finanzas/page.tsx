@@ -518,72 +518,93 @@ export default function FinanzasPage() {
       </div>
 
       <div className="mt-6 rounded-xl border border-border bg-bg p-4">
-        <div className="text-sm font-medium">
-          Resumen de {monthLabel(selectedMonth)}
+        <div className="text-xs font-medium uppercase tracking-wider text-text-3">
+          Estado de cuenta · {monthLabel(selectedMonth)}
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Metric label="Ingreso" value={fmtCOP(totals.ingreso)} className="text-green" />
-          <Metric label="Gastos" value={fmtCOP(totals.gastos)} className="text-red" />
-          {totals.hasFinal && (
-            <Metric
-              label="Banco hoy"
-              value={fmtCOP(totals.final)}
-              className={totals.hasInicial ? difClass : "text-text"}
-            />
-          )}
-          {totals.hasInicial && totals.hasFinal && (
-            <Metric
-              label="Diferencia"
-              value={`${totals.dif >= 0 ? "+" : ""}${fmtCOP(totals.dif)}`}
-              className={difClass}
-            />
-          )}
-        </div>
-        {totals.hasInicial && totals.hasFinal && (
-          <div className="mt-3 space-y-1 rounded-lg border border-border-2 p-3 text-sm">
-            <div className="flex items-baseline justify-between">
-              <span className="text-text-2">Banco del mes pasado</span>
-              <span className="font-medium tabular-nums">
-                {fmtCOP(totals.inicial)}
-              </span>
+
+        {totals.hasFinal && (
+          <div className="mt-3 rounded-lg bg-bg-2 p-4">
+            <div className="text-xs text-text-2">Saldo en el banco hoy</div>
+            <div
+              className={`mt-1 text-3xl font-medium tabular-nums ${
+                totals.hasInicial ? difClass : "text-text"
+              }`}
+            >
+              {fmtCOP(totals.final)}
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-text-2">+ Pensión y otros ingresos</span>
-              <span className="font-medium tabular-nums text-green">
-                +{fmtCOP(totals.ingreso)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-text-2">− Gastos registrados</span>
-              <span className="font-medium tabular-nums text-red">
-                −{fmtCOP(totals.gastos)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between border-t border-border pt-1">
-              <span className="text-text-2">Debería quedar en el banco</span>
-              <span className="font-medium tabular-nums">
-                {fmtCOP(totals.esperado_final)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-text-2">Tu banco dice</span>
-              <span className="font-medium tabular-nums">
-                {fmtCOP(totals.final)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between border-t border-border pt-1">
-              <span className="text-text-2">Diferencia</span>
-              <span className={`font-medium tabular-nums ${difClass}`}>
-                {totals.dif >= 0 ? "+" : ""}
-                {fmtCOP(totals.dif)} · {difLabel}
-              </span>
-            </div>
+            {totals.hasInicial && (
+              <div className={`mt-1 text-xs ${difClass}`}>
+                {Math.abs(totals.dif) < 10000
+                  ? "Cuadra con lo registrado"
+                  : totals.dif < 0
+                    ? `Faltan ${fmtCOP(Math.abs(totals.dif))} frente a lo esperado`
+                    : `Sobran ${fmtCOP(totals.dif)} frente a lo esperado`}
+              </div>
+            )}
           </div>
         )}
-        {!totals.hasInicial && totals.hasFinal && (
+
+        {!totals.hasFinal && (
           <div className="mt-3 rounded-lg border border-border-2 p-3 text-xs text-text-2">
-            Este es el primer mes registrado. Desde el próximo, la app va a
-            comparar contra este saldo para verificar que cuadre.
+            Escribí el saldo del banco arriba para ver el estado de cuenta.
+          </div>
+        )}
+
+        {totals.hasFinal && (
+          <div className="mt-4">
+            <div className="text-xs font-medium uppercase tracking-wider text-text-3">
+              Cómo se calcula
+            </div>
+            <div className="mt-2 space-y-1.5 rounded-lg border border-border-2 p-3 text-sm">
+              <StatementRow
+                label="Saldo del mes pasado"
+                value={
+                  totals.hasInicial ? fmtCOP(totals.inicial) : "Sin dato"
+                }
+                muted={!totals.hasInicial}
+              />
+              <StatementRow
+                label="+ Pensión y otros ingresos"
+                value={`+${fmtCOP(totals.ingreso)}`}
+                valueClass="text-green"
+              />
+              <StatementRow
+                label="− Gastos del mes"
+                value={`−${fmtCOP(totals.gastos)}`}
+                valueClass="text-red"
+              />
+              <div className="border-t border-border pt-1.5">
+                <StatementRow
+                  label="Saldo esperado"
+                  value={
+                    totals.hasInicial ? fmtCOP(totals.esperado_final) : "—"
+                  }
+                  bold
+                  muted={!totals.hasInicial}
+                />
+              </div>
+              <StatementRow
+                label="Saldo real (banco)"
+                value={fmtCOP(totals.final)}
+                bold
+              />
+              {totals.hasInicial && (
+                <div className="border-t border-border pt-1.5">
+                  <StatementRow
+                    label="Diferencia"
+                    value={`${totals.dif >= 0 ? "+" : ""}${fmtCOP(totals.dif)}`}
+                    valueClass={difClass}
+                    bold
+                  />
+                </div>
+              )}
+            </div>
+            {!totals.hasInicial && (
+              <p className="mt-2 text-xs text-text-2">
+                Este es el primer mes registrado. Desde el próximo, la app
+                compara contra este saldo para detectar si falta o sobra plata.
+              </p>
+            )}
           </div>
         )}
         {monthData && monthData.updated_at && (
@@ -807,24 +828,29 @@ function MoneyPaidRow({
   );
 }
 
-function Metric({
+function StatementRow({
   label,
   value,
-  className,
-  sub,
+  valueClass,
+  bold,
+  muted,
 }: {
   label: string;
   value: string;
-  className?: string;
-  sub?: string;
+  valueClass?: string;
+  bold?: boolean;
+  muted?: boolean;
 }) {
   return (
-    <div className="rounded-lg bg-bg-2 p-3">
-      <div className="text-xs text-text-2">{label}</div>
-      <div className={`mt-0.5 text-base font-medium ${className ?? ""}`}>
+    <div className="flex items-baseline justify-between">
+      <span className={muted ? "text-text-3" : "text-text-2"}>{label}</span>
+      <span
+        className={`tabular-nums ${bold ? "font-medium" : ""} ${
+          valueClass ?? (muted ? "text-text-3" : "text-text")
+        }`}
+      >
         {value}
-      </div>
-      {sub && <div className="text-xs text-text-3">{sub}</div>}
+      </span>
     </div>
   );
 }

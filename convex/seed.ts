@@ -10,6 +10,106 @@ function randomToken(): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+const REFERENCIAS_INICIALES = [
+  {
+    service_name: "Energía Enel / Codensa",
+    category: "service",
+    frequency: "monthly",
+    due_day: 21,
+    amount_reference: 252470,
+    details: [
+      { label: "N° de cliente", value: "0501354-1" },
+      { label: "N° medidor", value: "25676886" },
+    ],
+    notes:
+      "Incluye energía + aseo Bogotá Limpia + cuota Codensa. El valor varía mensualmente.",
+    sort_order: 1,
+  },
+  {
+    service_name: "Acueducto + alcantarillado + aseo · EAAB",
+    category: "service",
+    frequency: "bimonthly",
+    due_day: 20,
+    amount_reference: 318650,
+    details: [
+      { label: "N° para pagos", value: "19890424815" },
+      { label: "Cuenta contrato", value: "10235641" },
+    ],
+    notes: "Factura cada 2 meses.",
+    sort_order: 2,
+  },
+  {
+    service_name: "Gas · Vanti",
+    category: "service",
+    frequency: "monthly",
+    due_day: 18,
+    amount_reference: 61110,
+    details: [{ label: "Código sector", value: "60971121" }],
+    notes: "Verificar el N° de referencia en cada factura nueva.",
+    sort_order: 3,
+  },
+  {
+    service_name: "Salud · Compensar",
+    category: "service",
+    frequency: "monthly",
+    due_day: 30,
+    amount_reference: 617200,
+    details: [
+      { label: "Referencia de pago", value: "0416050024245972" },
+      { label: "NIT", value: "860066942-7" },
+      { label: "Dirección", value: "Av. 68 No. 49A-47 · Tel. 428 06 66" },
+    ],
+    sort_order: 4,
+  },
+  {
+    service_name: "Claro internet",
+    category: "service",
+    frequency: "monthly",
+    due_day: 30,
+    amount_reference: 102000,
+    sort_order: 5,
+  },
+  {
+    service_name: "Claro celular",
+    category: "service",
+    frequency: "monthly",
+    due_day: 30,
+    amount_reference: 55000,
+    sort_order: 6,
+  },
+  {
+    service_name: "Alarma",
+    category: "service",
+    frequency: "monthly",
+    notes: "La paga la hermana. Valor por confirmar.",
+    sort_order: 7,
+  },
+  {
+    service_name: "Caja menor semanal",
+    category: "household",
+    frequency: "weekly",
+    amount_reference: 300000,
+    amount_label: "$300.000 / semana · ≈ $1.200.000 / mes",
+    sort_order: 10,
+  },
+  {
+    service_name: "Empleada doméstica",
+    category: "household",
+    frequency: "per_visit",
+    amount_reference: 90000,
+    amount_label: "$90.000 × 12 visitas = $1.080.000 / mes",
+    details: [{ label: "Días que va", value: "Lunes · Miércoles · Sábado" }],
+    sort_order: 11,
+  },
+  {
+    service_name: "Mercado mensual",
+    category: "household",
+    frequency: "monthly",
+    amount_reference: 400000,
+    sort_order: 12,
+  },
+];
+
 const CITAS_INICIALES = [
   {
     date: "2026-06-05",
@@ -163,11 +263,25 @@ export const initial = mutation({
       }
     }
 
+    const existingRef = await ctx.db.query("payment_references").first();
+    let referencesAdded = 0;
+    if (!existingRef) {
+      for (const r of REFERENCIAS_INICIALES) {
+        await ctx.db.insert("payment_references", {
+          patient_id: patient._id,
+          updated_at: Date.now(),
+          ...r,
+        });
+        referencesAdded++;
+      }
+    }
+
     return {
       patient: patient.name,
       newInvitations,
       medicationsAdded: medsAdded,
       appointmentsAdded,
+      referencesAdded,
     };
   },
 });

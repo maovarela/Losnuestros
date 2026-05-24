@@ -40,15 +40,25 @@ export default function AppHome() {
           </div>
         </Link>
 
-        <div className="rounded-xl border border-border bg-bg p-5 opacity-50">
+        <Link
+          href="/app/referencias"
+          className="block rounded-xl border border-border bg-bg p-5 transition-colors hover:bg-bg-2"
+        >
           <div className="text-base font-medium">Referencias de pago</div>
-          <div className="mt-1 text-sm text-text-2">Próximamente</div>
-        </div>
+          <div className="mt-1 text-sm text-text-2">
+            Datos de servicios y gastos fijos
+          </div>
+        </Link>
 
-        <div className="rounded-xl border border-border bg-bg p-5 opacity-50">
+        <Link
+          href="/app/finanzas"
+          className="block rounded-xl border border-border bg-bg p-5 transition-colors hover:bg-bg-2"
+        >
           <div className="text-base font-medium">Finanzas mensuales</div>
-          <div className="mt-1 text-sm text-text-2">Próximamente</div>
-        </div>
+          <div className="mt-1 text-sm text-text-2">
+            Pensión, gastos y reconciliación bancaria
+          </div>
+        </Link>
       </div>
     </div>
   );

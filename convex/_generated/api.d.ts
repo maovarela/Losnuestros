@@ -10,9 +10,11 @@
 
 import type * as appointments from "../appointments.js";
 import type * as caregivers from "../caregivers.js";
+import type * as financeMonths from "../financeMonths.js";
 import type * as invitations from "../invitations.js";
 import type * as medications from "../medications.js";
 import type * as patients from "../patients.js";
+import type * as paymentReferences from "../paymentReferences.js";
 import type * as seed from "../seed.js";
 
 import type {
@@ -24,9 +26,11 @@ import type {
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   caregivers: typeof caregivers;
+  financeMonths: typeof financeMonths;
   invitations: typeof invitations;
   medications: typeof medications;
   patients: typeof patients;
+  paymentReferences: typeof paymentReferences;
   seed: typeof seed;
 }>;
 

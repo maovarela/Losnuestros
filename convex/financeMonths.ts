@@ -8,7 +8,13 @@ export const listByPatient = query({
       .query("finance_months")
       .withIndex("by_patient", (q) => q.eq("patient_id", args.patientId))
       .collect();
-    return items.sort((a, b) => b.month_key.localeCompare(a.month_key));
+    const enriched = await Promise.all(
+      items.map(async (m) => {
+        const c = m.updated_by ? await ctx.db.get(m.updated_by) : null;
+        return { ...m, updated_by_name: c?.name ?? null };
+      }),
+    );
+    return enriched.sort((a, b) => b.month_key.localeCompare(a.month_key));
   },
 });
 

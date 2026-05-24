@@ -164,18 +164,9 @@ export default function CitasPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
-      <Link
-        href="/app"
-        className="mb-4 inline-block text-sm text-text-2 hover:text-text"
-      >
-        Volver al inicio
-      </Link>
-
-      <h1 className="text-xl font-medium">Citas médicas</h1>
-
+    <main>
       {proxima && (
-        <div className="mt-4 rounded-xl border border-blue-border bg-blue-bg p-4">
+        <div className="rounded-xl border border-blue-border bg-blue-bg p-4">
           <div className="text-xs font-medium text-blue">Próxima cita</div>
           {proxima.doctor && (
             <div className="mt-1 text-base font-medium text-blue">
@@ -307,8 +298,7 @@ export default function CitasPage() {
             {sorted.map((c) => {
               const d = daysUntil(c.date);
               const isFuture = d >= 0;
-              const showAttribution =
-                c.updated_by && c.updated_by !== caregiverId;
+              const showAttribution = !!c.updated_by;
               return (
                 <div
                   key={c._id}

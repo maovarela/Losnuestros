@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -36,25 +35,16 @@ export default function ReferenciasPage() {
   }, [refs]);
 
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
-      <Link
-        href="/app"
-        className="mb-4 inline-block text-sm text-text-2 hover:text-text"
-      >
-        Volver al inicio
-      </Link>
-
-      <h1 className="text-xl font-medium">Referencias de pago</h1>
-
+    <main>
       {refs === undefined && (
-        <div className="mt-6 rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-3">
+        <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-3">
           Cargando...
         </div>
       )}
 
       {grouped.servicios.length > 0 && (
         <>
-          <div className="mt-6 mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
             Servicios públicos
           </div>
           <div className="space-y-3">

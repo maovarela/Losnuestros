@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -277,17 +276,8 @@ export default function FinanzasPage() {
         : "Faltan pesos en el banco frente a lo calculado";
 
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
-      <Link
-        href="/app"
-        className="mb-4 inline-block text-sm text-text-2 hover:text-text"
-      >
-        Volver al inicio
-      </Link>
-
-      <h1 className="text-xl font-medium">Finanzas mensuales</h1>
-
-      <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+    <main>
+      <div className="rounded-xl border border-border bg-bg p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm font-medium">Mes</div>
           <div className="flex flex-wrap items-center gap-2">
@@ -559,6 +549,11 @@ export default function FinanzasPage() {
                         >
                           {monthLabel(m.month_key)}
                         </button>
+                        {m.updated_by_name && (
+                          <div className="text-xs font-normal text-text-2">
+                            {m.updated_by_name}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right text-green">
                         {fmtCOP(ingreso)}

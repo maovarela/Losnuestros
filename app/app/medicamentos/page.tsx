@@ -162,18 +162,9 @@ export default function MedicamentosPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
-      <Link
-        href="/app"
-        className="mb-4 inline-block text-sm text-text-2 hover:text-text"
-      >
-        Volver al inicio
-      </Link>
-
-      <h1 className="text-xl font-medium">Medicamentos</h1>
-
+    <main>
       {alerts.vencidos.length > 0 && (
-        <div className="mt-4 space-y-2">
+        <div className="space-y-2">
           {alerts.vencidos.map((m) => (
             <div
               key={m._id}
@@ -329,8 +320,7 @@ export default function MedicamentosPage() {
                     : d <= 7
                       ? { text: `En ${d} día${d === 1 ? "" : "s"}`, className: "bg-amber-bg text-amber" }
                       : { text: fmtDate(m.next_refill!), className: "bg-green-bg text-green" };
-              const showAttribution =
-                m.updated_by && m.updated_by !== caregiverId;
+              const showAttribution = !!m.updated_by;
               return (
                 <div
                   key={m._id}

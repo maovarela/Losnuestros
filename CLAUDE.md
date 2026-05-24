@@ -33,10 +33,12 @@ app/
   globals.css               paleta del HTML como @theme tokens (light + dark auto)
   entrar/[token]/route.ts   GET handler que consume invitation, setea cookie, redirige
   app/
-    layout.tsx              guard de sesion + ConvexClientProvider + AppProvider
-    page.tsx                home con alertas consolidadas + CTAs + cards a sub-paginas
-    medicamentos/page.tsx   lista + form + alertas + ?edit=<id> deep link
-    citas/page.tsx          historial + banner proxima cita + form + ?edit=<id>
+    layout.tsx              guard de sesion + header con avatar AO + Tabs + providers
+    _components/tabs.tsx    barra horizontal de tabs (active via usePathname)
+    page.tsx                redirect a /app/resumen (no contenido)
+    resumen/page.tsx        Lo que viene esta semana + Lo que paso esta semana
+    medicamentos/page.tsx   alertas + form + lista + ?edit=<id> deep link
+    citas/page.tsx          banner proxima cita + form + historial + ?edit=<id>
     referencias/page.tsx    read-only por servicio + hogar
     finanzas/page.tsx       form mensual + reconciliacion banco vs teorico + historial
 
@@ -72,9 +74,11 @@ Las **6 fases planeadas estan en produccion**:
 - F0 scaffold, F1 auth + schema base, F2 medicamentos, F3 citas, F4 referencias, F5 finanzas, F6 home con alertas.
 
 Mejoras post-fases ya aplicadas:
-- Auditoria UI (P0/P1 del audit del Product Manager subagente): em-dashes fuera, contraste WCAG AA, tap targets min-h-11, voseo a tuteo neutro colombiano, atribucion filtrada al otro cuidador, save toast, focus-visible rings, semantica main/nav/section.
+- Auditoria UI (P0/P1 del audit del Product Manager subagente): em-dashes fuera, contraste WCAG AA, tap targets min-h-11, voseo a tuteo neutro colombiano, save toast, focus-visible rings, semantica main/nav/section.
 - Separador de miles en inputs de pesos ($1.080.000) con `tabular-nums`.
-- CTAs en cada alerta del home: "Hice el refill", "Marcar pagado", "Ver cita". Las dos primeras son mutations de un solo toque; la tercera es deep link `?edit=<id>` al form.
+- CTAs en cada alerta: "Hice el refill", "Marcar pagado", "Ver cita". Las dos primeras son mutations de un solo toque; la tercera es deep link `?edit=<id>` al form.
+- Estructura visual del HTML original restaurada (post-feedback): tabs horizontales en lugar de cards de navegacion, nueva tab "Resumen" como default con "Lo que viene" + "Lo que paso esta semana", alertas viven dentro de cada tab (no consolidadas en home).
+- Atribucion siempre visible en historiales: "Ingrid actualizo X" / "Sandra actualizo Y" en medicamentos, citas, finanzas y resumen reciente. Antes estaba filtrado solo cuando era la otra cuidadora, ahora siempre aparece.
 
 Backlog vivo: **`PENDIENTES.md`** en root. Items abiertos: notificaciones externas (email Resend + Convex cron), modal custom vs `window.confirm`, lista antes que form, manejo de errores de red, focus rings en botones, tercer "usuario" abuela (3 caminos posibles, decidir).
 

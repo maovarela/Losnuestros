@@ -135,7 +135,7 @@ export default function IngestarPage() {
       const rows = normalize(data.proposals);
       if (rows.length === 0 && !data.message) {
         setError(
-          "No encontré nada para registrar. Probá con otra foto, otro texto, o ingresá los datos a mano en la pestaña correspondiente.",
+          "No encontré nada para registrar. Prueba con otra foto, otro texto, o ingresa los datos a mano en la pestaña correspondiente.",
         );
       }
       setProposals((prev) => [...rows, ...prev]);
@@ -143,7 +143,7 @@ export default function IngestarPage() {
       setFile(null);
     } catch (e) {
       setError(
-        `No pude conectar con el servidor: ${e instanceof Error ? e.message : "error desconocido"}. Probá de nuevo o ingresá a mano.`,
+        `No pude conectar con el servidor: ${e instanceof Error ? e.message : "error desconocido"}. Prueba de nuevo o ingresa a mano.`,
       );
     } finally {
       setAnalyzing(false);
@@ -223,8 +223,8 @@ export default function IngestarPage() {
           Subir recetario, mensaje de cita o recibo
         </div>
         <p className="mt-1 text-xs text-text-2">
-          Sacale foto al recetario o pegá el mensaje de WhatsApp. La app te
-          propone lo que entendió y vos confirmás antes de guardar.
+          Tómale foto al recetario o pega el mensaje de WhatsApp. La app te
+          propone lo que entendió y tú confirmas antes de guardar.
         </p>
 
         <div className="mt-3">
@@ -298,7 +298,7 @@ export default function IngestarPage() {
       )}
 
       <section className="mt-6 rounded-xl border border-border bg-bg p-4 text-xs text-text-2">
-        Si la app no logra leerlo o se equivoca, podés ingresar los datos a
+        Si la app no logra leerlo o se equivoca, puedes ingresar los datos a
         mano directamente en{" "}
         <Link href="/app/medicamentos" className="text-blue underline">
           Medicamentos

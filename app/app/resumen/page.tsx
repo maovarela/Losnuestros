@@ -327,9 +327,9 @@ export default function ResumenPage() {
           Cargar foto o mensaje
         </div>
         <p className="mt-1 text-sm text-blue/85">
-          Sácale foto a un recetario o pegá un mensaje de WhatsApp con citas.
-          La app lo entiende y te lo deja listo para guardar. También podés
-          arrastrar una foto desde tu computador.
+          Tómale una foto a un recetario o pega un mensaje de WhatsApp con
+          citas. La app lo entiende y te lo deja listo para guardar. También
+          puedes arrastrar una foto desde tu computadora.
         </p>
       </Link>
 

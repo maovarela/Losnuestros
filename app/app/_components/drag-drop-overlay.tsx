@@ -71,7 +71,7 @@ export function DragDropOverlay() {
     <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-blue/20 p-6 backdrop-blur-sm">
       <div className="rounded-2xl border-2 border-dashed border-blue bg-bg px-8 py-10 text-center shadow-2xl">
         <div className="text-lg font-medium text-blue">
-          Soltá la foto acá
+          Suelta la foto aquí
         </div>
         <div className="mt-1 text-sm text-text-2">
           La app la abre en la pantalla de carga

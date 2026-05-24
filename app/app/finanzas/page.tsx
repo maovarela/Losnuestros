@@ -443,7 +443,7 @@ export default function FinanzasPage() {
         <div className="mt-5 rounded-lg border border-border-2 p-3">
           <div className="text-sm font-medium">Saldo en el banco</div>
           <p className="mt-1 text-xs text-text-2">
-            Escribí lo que hay en la cuenta hoy (o al cerrar el mes). La app
+            Escribe lo que hay en la cuenta hoy (o al cerrar el mes). La app
             usa el saldo del mes pasado para verificar que cuadre con lo que
             registraste arriba.
           </p>
@@ -546,7 +546,7 @@ export default function FinanzasPage() {
 
         {!totals.hasFinal && (
           <div className="mt-3 rounded-lg border border-border-2 p-3 text-xs text-text-2">
-            Escribí el saldo del banco arriba para ver el estado de cuenta.
+            Escribe el saldo del banco arriba para ver el estado de cuenta.
           </div>
         )}
 

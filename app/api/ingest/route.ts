@@ -32,8 +32,8 @@ Reglas:
 - Las fechas SIEMPRE YYYY-MM-DD, los meses YYYY-MM. Hoy es ${new Date().toISOString().slice(0, 10)}.
 - Los montos en pesos SIN separadores ni símbolos.
 - Si no estás seguro de un campo, OMITILO. No inventes.
-- Si la entrada tiene varios items (ej un recetario con 3 medicamentos, o un mensaje con 3 citas), devolvé un array con todos.
-- Si no podés extraer nada con confianza, devolvé un array vacío [].`;
+- Si la entrada tiene varios items (ej un recetario con 3 medicamentos, o un mensaje con 3 citas), devuelve un array con todos.
+- Si no puedes extraer nada con confianza, devuelve un array vacío [].`;
 
 const responseSchema = {
   type: Type.ARRAY,
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
         {
           error: "parse_failed",
           message:
-            "El modelo no devolvió JSON válido. Editá los campos a mano abajo o ingresá los datos directamente en la pestaña correspondiente.",
+            "El modelo no devolvió JSON válido. Edita los campos a mano abajo o ingresa los datos directamente en la pestaña correspondiente.",
           raw,
           proposals: [],
         },
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: "api_failed",
-        message: `Gemini falló: ${message}. Podés ingresar los datos a mano en la pestaña correspondiente.`,
+        message: `Gemini falló: ${message}. Puedes ingresar los datos a mano en la pestaña correspondiente.`,
         proposals: [],
       },
       { status: 200 },

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LosNuestros",
+  title: "Ana María Ortega Salcedo",
   description: "Organizador familiar para cuidadoras",
 };
 

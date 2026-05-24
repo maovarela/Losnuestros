@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "convex": "convex dev",
+    "seed": "convex run seed:initial"
   },
   "dependencies": {
     "convex": "^1.39.1",

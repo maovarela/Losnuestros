@@ -24,12 +24,12 @@ export const initial = mutation({
 
     const mamaId = await ctx.db.insert("caregivers", {
       patient_id: patientId,
-      name: "Mamá",
+      name: "Ingrid Perez",
     });
 
     const tiaId = await ctx.db.insert("caregivers", {
       patient_id: patientId,
-      name: "Tía",
+      name: "Sandra Perez",
     });
 
     const mamaToken = randomToken();

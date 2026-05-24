@@ -28,6 +28,13 @@ next-env.d.ts
 
 # convex
 .convex/
+convex/_generated/ai/
+
+# AI tooling (auto-generated, not part of source)
+.agents/
+AGENTS.md
+CLAUDE.md
+skills-lock.json
 
 # vercel
 .vercel

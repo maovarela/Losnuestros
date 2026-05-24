@@ -413,11 +413,16 @@ export default function FinanzasPage() {
         </div>
 
         <div className="mt-5 rounded-lg border border-border-2 p-3">
-          <div className="text-xs font-medium text-text-2">
-            Saldo real en cuenta bancaria al cierre del mes
+          <div className="text-sm font-medium">
+            ¿Cuánto te quedó en el banco al final del mes?
           </div>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="text-sm text-text-2">Saldo en banco</span>
+          <p className="mt-1 text-xs text-text-2">
+            Cuando ya hayas pagado todas las facturas, mira tu cuenta y escribe acá
+            lo que quedó. La app revisa que cuadre con lo que registraste arriba y
+            te avisa si falta o sobra plata.
+          </p>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-sm text-text-2">Saldo final</span>
             <div className="relative flex items-center">
               <span className="pointer-events-none absolute left-3 text-sm text-text-2">
                 $
@@ -429,7 +434,7 @@ export default function FinanzasPage() {
                 onChange={(e) =>
                   setForm({ ...form, saldo_banco: digitsOnly(e.target.value) })
                 }
-                placeholder="0"
+                placeholder=""
                 className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
               />
             </div>

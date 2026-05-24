@@ -347,6 +347,117 @@ export default function FinanzasPage() {
       </div>
 
       <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+        <div className="text-xs font-medium uppercase tracking-wider text-text-3">
+          Estado de cuenta · {monthLabel(selectedMonth)}
+        </div>
+
+        {totals.hasFinal && (
+          <div className="mt-3 rounded-lg bg-bg-2 p-4">
+            <div className="text-xs text-text-2">Saldo en el banco hoy</div>
+            <div
+              className={`mt-1 text-3xl font-medium tabular-nums ${
+                totals.hasInicial ? difClass : "text-text"
+              }`}
+            >
+              {fmtCOP(totals.final)}
+            </div>
+            {totals.hasInicial && (
+              <div className={`mt-1 text-xs ${difClass}`}>
+                {Math.abs(totals.dif) < 10000
+                  ? "Cuadra con lo registrado"
+                  : totals.dif < 0
+                    ? `Faltan ${fmtCOP(Math.abs(totals.dif))} frente a lo esperado`
+                    : `Sobran ${fmtCOP(totals.dif)} frente a lo esperado`}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!totals.hasFinal && (
+          <div className="mt-3 rounded-lg border border-border-2 p-3 text-xs text-text-2">
+            Escribe el saldo del banco abajo para ver el estado de cuenta.
+          </div>
+        )}
+
+        {totals.hasFinal && (
+          <div className="mt-4">
+            <div className="text-xs font-medium uppercase tracking-wider text-text-3">
+              Cómo se calcula
+            </div>
+            <div className="mt-2 space-y-1.5 rounded-lg border border-border-2 p-3 text-sm">
+              <StatementRow
+                label="Saldo del mes pasado"
+                value={
+                  totals.hasInicial ? fmtCOP(totals.inicial) : "Sin dato"
+                }
+                muted={!totals.hasInicial}
+              />
+              <StatementRow
+                label="+ Pensión y otros ingresos"
+                value={`+${fmtCOP(totals.ingreso)}`}
+                valueClass="text-green"
+              />
+              <StatementRow
+                label="− Gastos del mes"
+                value={`−${fmtCOP(totals.gastos)}`}
+                valueClass="text-red"
+              />
+              <div className="border-t border-border pt-1.5">
+                <StatementRow
+                  label="Saldo esperado"
+                  value={
+                    totals.hasInicial ? fmtCOP(totals.esperado_final) : "—"
+                  }
+                  bold
+                  muted={!totals.hasInicial}
+                />
+              </div>
+              <StatementRow
+                label="Saldo real (banco)"
+                value={fmtCOP(totals.final)}
+                bold
+              />
+              {totals.hasInicial && (
+                <div className="border-t border-border pt-1.5">
+                  <StatementRow
+                    label="Diferencia"
+                    value={`${totals.dif >= 0 ? "+" : ""}${fmtCOP(totals.dif)}`}
+                    valueClass={difClass}
+                    bold
+                  />
+                </div>
+              )}
+            </div>
+            {!totals.hasInicial && (
+              <p className="mt-2 text-xs text-text-2">
+                Este es el primer mes registrado. Desde el próximo, la app
+                compara contra este saldo para detectar si falta o sobra plata.
+              </p>
+            )}
+          </div>
+        )}
+        {monthData && monthData.updated_at && (
+          <div className="mt-3 border-t border-border pt-2 text-xs text-text-2">
+            {monthData.responsible_for_name &&
+            monthData.responsible_for !== monthData.updated_by ? (
+              <>
+                Lo registró {monthData.updated_by_name ?? "alguien"} · lo pagó{" "}
+                <span className="font-medium text-text">
+                  {monthData.responsible_for_name}
+                </span>{" "}
+                {relativeTime(monthData.updated_at)}
+              </>
+            ) : (
+              <>
+                Actualizado por {monthData.updated_by_name ?? "alguien"}{" "}
+                {relativeTime(monthData.updated_at)}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 rounded-xl border border-border bg-bg p-4">
         <SectionLabel>Ingresos</SectionLabel>
         <div className="mt-2 space-y-3">
           <MoneyRow
@@ -515,117 +626,6 @@ export default function FinanzasPage() {
             {saving ? "Guardando..." : "Guardar mes"}
           </button>
         </div>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-border bg-bg p-4">
-        <div className="text-xs font-medium uppercase tracking-wider text-text-3">
-          Estado de cuenta · {monthLabel(selectedMonth)}
-        </div>
-
-        {totals.hasFinal && (
-          <div className="mt-3 rounded-lg bg-bg-2 p-4">
-            <div className="text-xs text-text-2">Saldo en el banco hoy</div>
-            <div
-              className={`mt-1 text-3xl font-medium tabular-nums ${
-                totals.hasInicial ? difClass : "text-text"
-              }`}
-            >
-              {fmtCOP(totals.final)}
-            </div>
-            {totals.hasInicial && (
-              <div className={`mt-1 text-xs ${difClass}`}>
-                {Math.abs(totals.dif) < 10000
-                  ? "Cuadra con lo registrado"
-                  : totals.dif < 0
-                    ? `Faltan ${fmtCOP(Math.abs(totals.dif))} frente a lo esperado`
-                    : `Sobran ${fmtCOP(totals.dif)} frente a lo esperado`}
-              </div>
-            )}
-          </div>
-        )}
-
-        {!totals.hasFinal && (
-          <div className="mt-3 rounded-lg border border-border-2 p-3 text-xs text-text-2">
-            Escribe el saldo del banco arriba para ver el estado de cuenta.
-          </div>
-        )}
-
-        {totals.hasFinal && (
-          <div className="mt-4">
-            <div className="text-xs font-medium uppercase tracking-wider text-text-3">
-              Cómo se calcula
-            </div>
-            <div className="mt-2 space-y-1.5 rounded-lg border border-border-2 p-3 text-sm">
-              <StatementRow
-                label="Saldo del mes pasado"
-                value={
-                  totals.hasInicial ? fmtCOP(totals.inicial) : "Sin dato"
-                }
-                muted={!totals.hasInicial}
-              />
-              <StatementRow
-                label="+ Pensión y otros ingresos"
-                value={`+${fmtCOP(totals.ingreso)}`}
-                valueClass="text-green"
-              />
-              <StatementRow
-                label="− Gastos del mes"
-                value={`−${fmtCOP(totals.gastos)}`}
-                valueClass="text-red"
-              />
-              <div className="border-t border-border pt-1.5">
-                <StatementRow
-                  label="Saldo esperado"
-                  value={
-                    totals.hasInicial ? fmtCOP(totals.esperado_final) : "—"
-                  }
-                  bold
-                  muted={!totals.hasInicial}
-                />
-              </div>
-              <StatementRow
-                label="Saldo real (banco)"
-                value={fmtCOP(totals.final)}
-                bold
-              />
-              {totals.hasInicial && (
-                <div className="border-t border-border pt-1.5">
-                  <StatementRow
-                    label="Diferencia"
-                    value={`${totals.dif >= 0 ? "+" : ""}${fmtCOP(totals.dif)}`}
-                    valueClass={difClass}
-                    bold
-                  />
-                </div>
-              )}
-            </div>
-            {!totals.hasInicial && (
-              <p className="mt-2 text-xs text-text-2">
-                Este es el primer mes registrado. Desde el próximo, la app
-                compara contra este saldo para detectar si falta o sobra plata.
-              </p>
-            )}
-          </div>
-        )}
-        {monthData && monthData.updated_at && (
-          <div className="mt-3 border-t border-border pt-2 text-xs text-text-2">
-            {monthData.responsible_for_name &&
-            monthData.responsible_for !== monthData.updated_by ? (
-              <>
-                Lo registró {monthData.updated_by_name ?? "alguien"} · lo pagó{" "}
-                <span className="font-medium text-text">
-                  {monthData.responsible_for_name}
-                </span>{" "}
-                {relativeTime(monthData.updated_at)}
-              </>
-            ) : (
-              <>
-                Actualizado por {monthData.updated_by_name ?? "alguien"}{" "}
-                {relativeTime(monthData.updated_at)}
-              </>
-            )}
-          </div>
-        )}
       </div>
 
       {history && history.length > 0 && (

@@ -319,6 +319,20 @@ export default function ResumenPage() {
 
   return (
     <main>
+      <Link
+        href="/app/ingestar"
+        className="mb-6 block rounded-xl border-2 border-dashed border-blue-border bg-blue-bg p-5 transition-colors hover:bg-blue-bg/80 active:bg-blue-bg/80"
+      >
+        <div className="text-base font-medium text-blue">
+          Cargar foto o mensaje
+        </div>
+        <p className="mt-1 text-sm text-blue/85">
+          Sácale foto a un recetario o pegá un mensaje de WhatsApp con citas.
+          La app lo entiende y te lo deja listo para guardar. También podés
+          arrastrar una foto desde tu computador.
+        </p>
+      </Link>
+
       <section aria-label="Lo que viene esta semana">
         <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
           Lo que viene esta semana

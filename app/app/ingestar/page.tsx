@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAppContext } from "@/lib/app-context";
+import { useDropContext } from "@/lib/drop-context";
 
 type ServiceKey =
   | "compensar"
@@ -104,6 +105,18 @@ export default function IngestarPage() {
   const [proposals, setProposals] = useState<ProposalRow[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedCount, setSavedCount] = useState(0);
+
+  const { consumePendingFile } = useDropContext();
+  const consumedRef = useRef(false);
+
+  useEffect(() => {
+    if (consumedRef.current) return;
+    const pending = consumePendingFile();
+    if (pending) {
+      consumedRef.current = true;
+      setFile(pending);
+    }
+  }, [consumePendingFile]);
 
   async function handleAnalyze() {
     setError(null);

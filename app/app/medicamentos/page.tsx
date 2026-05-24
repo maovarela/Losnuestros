@@ -56,6 +56,7 @@ export default function MedicamentosPage() {
   const createMed = useMutation(api.medications.create);
   const updateMed = useMutation(api.medications.update);
   const removeMed = useMutation(api.medications.remove);
+  const markRefilledMut = useMutation(api.medications.markRefilled);
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
@@ -64,6 +65,7 @@ export default function MedicamentosPage() {
   const [editingId, setEditingId] = useState<Id<"medications"> | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [refilling, setRefilling] = useState<Id<"medications"> | null>(null);
   const [savedFlag, setSavedFlag] = useState(false);
 
   const searchParams = useSearchParams();
@@ -129,6 +131,15 @@ export default function MedicamentosPage() {
     setNameError(null);
   }
 
+  async function handleMarkRefilled(id: Id<"medications">) {
+    setRefilling(id);
+    try {
+      await markRefilledMut({ id, updatedBy: caregiverId });
+    } finally {
+      setRefilling(null);
+    }
+  }
+
   async function handleSave() {
     if (!form.name.trim()) {
       setNameError("Necesitamos un nombre para guardarlo");
@@ -175,10 +186,19 @@ export default function MedicamentosPage() {
           {alerts.vencidos.map((m) => (
             <div
               key={m._id}
-              className="rounded-lg border border-red-border bg-red-bg px-3 py-2 text-sm text-red"
+              className="flex items-start justify-between gap-3 rounded-lg border border-red-border bg-red-bg px-3 py-2 text-sm text-red"
             >
-              Refill vencido. <strong>{m.name}</strong> debía hacerse el{" "}
-              {fmtDate(m.next_refill!)}.
+              <div className="min-w-0 flex-1">
+                Refill vencido. <strong>{m.name}</strong> debía hacerse el{" "}
+                {fmtDate(m.next_refill!)}.
+              </div>
+              <button
+                onClick={() => handleMarkRefilled(m._id)}
+                disabled={refilling === m._id}
+                className="min-h-9 shrink-0 rounded-md border border-red bg-red px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+              >
+                {refilling === m._id ? "..." : "Hice el refill"}
+              </button>
             </div>
           ))}
         </div>
@@ -197,10 +217,19 @@ export default function MedicamentosPage() {
             return (
               <div
                 key={m._id}
-                className="rounded-lg border border-amber-border bg-amber-bg px-3 py-2 text-sm text-amber"
+                className="flex items-start justify-between gap-3 rounded-lg border border-amber-border bg-amber-bg px-3 py-2 text-sm text-amber"
               >
-                Refill próximo. <strong>{m.name}</strong>, {cuando} (
-                {fmtDate(m.next_refill!)}).
+                <div className="min-w-0 flex-1">
+                  Refill próximo. <strong>{m.name}</strong>, {cuando} (
+                  {fmtDate(m.next_refill!)}).
+                </div>
+                <button
+                  onClick={() => handleMarkRefilled(m._id)}
+                  disabled={refilling === m._id}
+                  className="min-h-9 shrink-0 rounded-md border border-amber bg-amber px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+                >
+                  {refilling === m._id ? "..." : "Hice el refill"}
+                </button>
               </div>
             );
           })}

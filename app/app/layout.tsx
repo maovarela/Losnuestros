@@ -5,6 +5,7 @@ import { AppProvider } from "@/lib/app-context";
 import { convex } from "@/lib/convex-server";
 import { ConvexClientProvider } from "@/lib/convex-client";
 import { getSession } from "@/lib/session-server";
+import { IngestFab } from "./_components/ingest-fab";
 import { Tabs } from "./_components/tabs";
 
 export default async function AppLayout({
@@ -43,7 +44,7 @@ export default async function AppLayout({
           otherCaregivers,
         }}
       >
-        <div className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-12">
+        <div className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-24">
           <header className="flex items-center gap-4 rounded-xl border border-border bg-bg-2 px-6 py-5">
             <div
               aria-hidden="true"
@@ -61,6 +62,7 @@ export default async function AppLayout({
           <Tabs />
           {children}
         </div>
+        <IngestFab />
       </AppProvider>
     </ConvexClientProvider>
   );

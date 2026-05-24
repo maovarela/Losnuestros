@@ -34,7 +34,6 @@ convex/_generated/ai/
 .agents/
 .claude/
 AGENTS.md
-CLAUDE.md
 skills-lock.json
 
 # vercel

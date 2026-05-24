@@ -36,10 +36,11 @@ export const consume = mutation({
       .first();
 
     if (!inv) return { ok: false as const, error: "invalid" as const };
-    if (inv.consumed_at) return { ok: false as const, error: "consumed" as const };
     if (inv.expires_at < Date.now()) return { ok: false as const, error: "expired" as const };
 
-    await ctx.db.patch(inv._id, { consumed_at: Date.now() });
+    if (!inv.consumed_at) {
+      await ctx.db.patch(inv._id, { consumed_at: Date.now() });
+    }
     return { ok: true as const, caregiverId: inv.caregiver_id };
   },
 });

@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session-server";
 
-type ErrorReason = "consumed" | "expired" | "invalid" | "server";
+type ErrorReason = "expired" | "invalid" | "server";
 
 const ERROR_MESSAGES: Record<ErrorReason, string> = {
-  consumed: "Este link ya fue usado. Pídele a quien te lo envió que te genere otro.",
   expired: "Este link venció. Pídele a quien te lo envió que te genere otro.",
   invalid: "Este link no es válido. Verifica que esté completo.",
   server: "Hubo un problema del lado del servidor. Intenta de nuevo en un rato.",

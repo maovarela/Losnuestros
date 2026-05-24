@@ -321,16 +321,31 @@ export default function ResumenPage() {
     <main>
       <Link
         href="/app/ingestar"
-        className="mb-6 block rounded-xl border-2 border-dashed border-blue-border bg-blue-bg p-5 transition-colors hover:bg-blue-bg/80 active:bg-blue-bg/80"
+        className="mb-6 flex items-center justify-between gap-4 rounded-xl bg-blue px-5 py-4 text-bg shadow-md transition-opacity hover:opacity-90 active:opacity-85"
       >
-        <div className="text-base font-medium text-blue">
-          Cargar foto o mensaje
+        <div className="min-w-0 flex-1">
+          <div className="text-base font-medium">
+            Tomar foto o pegar mensaje
+          </div>
+          <p className="mt-1 text-sm opacity-90">
+            Recetarios, citas de WhatsApp o recibos. La app los entiende y los
+            deja listos para guardar. También puedes arrastrar una foto.
+          </p>
         </div>
-        <p className="mt-1 text-sm text-blue/85">
-          Tómale una foto a un recetario o pega un mensaje de WhatsApp con
-          citas. La app lo entiende y te lo deja listo para guardar. También
-          puedes arrastrar una foto desde tu computadora.
-        </p>
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="shrink-0"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
       </Link>
 
       <section aria-label="Lo que viene esta semana">

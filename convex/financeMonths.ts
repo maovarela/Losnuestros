@@ -26,6 +26,26 @@ export const listByPatient = query({
   },
 });
 
+export const getLatestSaldo = query({
+  args: { patientId: v.id("patients") },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query("finance_months")
+      .withIndex("by_patient", (q) => q.eq("patient_id", args.patientId))
+      .collect();
+    const withSaldo = all
+      .filter((m) => m.saldo_banco !== undefined)
+      .sort((a, b) => b.month_key.localeCompare(a.month_key));
+    const latest = withSaldo[0];
+    if (!latest) return null;
+    return {
+      monthKey: latest.month_key,
+      saldo: latest.saldo_banco,
+      updatedAt: latest.updated_at,
+    };
+  },
+});
+
 export const getByMonth = query({
   args: { patientId: v.id("patients"), monthKey: v.string() },
   handler: async (ctx, args) => {

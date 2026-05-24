@@ -25,6 +25,7 @@ export default async function AppLayout({
   ]);
 
   if (!patient || !caregiver) redirect("/");
+  if (caregiver.role === "patient") redirect("/abuela");
 
   const allCaregivers = await convex().query(api.caregivers.listByPatient, {
     patientId: patient._id,

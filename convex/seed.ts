@@ -49,10 +49,10 @@ export const initial = mutation({
     return {
       skipped: false as const,
       patient: "Ana María Ortega Salcedo",
-      invitations: {
-        Mamá: `/entrar/${mamaToken}`,
-        Tía: `/entrar/${tiaToken}`,
-      },
+      invitations: [
+        { caregiver: "Mamá", url: `/entrar/${mamaToken}` },
+        { caregiver: "Tía", url: `/entrar/${tiaToken}` },
+      ],
     };
   },
 });

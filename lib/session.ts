@@ -13,11 +13,11 @@ function base64url(bytes: ArrayBuffer | Uint8Array): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function fromBase64url(s: string): Uint8Array {
+function fromBase64url(s: string): Uint8Array<ArrayBuffer> {
   let t = s.replace(/-/g, "+").replace(/_/g, "/");
   while (t.length % 4) t += "=";
   const bin = atob(t);
-  const out = new Uint8Array(bin.length);
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }

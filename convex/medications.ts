@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const listByPatient = query({
   args: { patientId: v.id("patients") },
@@ -42,13 +43,26 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const { patientId, updatedBy, responsibleFor, ...fields } = args;
-    return await ctx.db.insert("medications", {
+    const id = await ctx.db.insert("medications", {
       patient_id: patientId,
       updated_by: updatedBy,
       responsible_for: responsibleFor,
       updated_at: Date.now(),
       ...fields,
     });
+    let responsibleName: string | undefined;
+    if (responsibleFor && responsibleFor !== updatedBy) {
+      const r = await ctx.db.get(responsibleFor);
+      responsibleName = r?.name;
+    }
+    await ctx.scheduler.runAfter(0, internal.email.sendChangeAlert, {
+      patientId,
+      actorId: updatedBy,
+      eventType: "medication_created",
+      detail: fields.name,
+      responsibleName,
+    });
+    return id;
   },
 });
 
@@ -120,6 +134,18 @@ export const markRefilled = mutation({
       updated_by: args.updatedBy,
       responsible_for: args.responsibleFor ?? args.updatedBy,
       updated_at: Date.now(),
+    });
+    let responsibleName: string | undefined;
+    if (args.responsibleFor && args.responsibleFor !== args.updatedBy) {
+      const r = await ctx.db.get(args.responsibleFor);
+      responsibleName = r?.name;
+    }
+    await ctx.scheduler.runAfter(0, internal.email.sendChangeAlert, {
+      patientId: med.patient_id,
+      actorId: args.updatedBy,
+      eventType: "refill",
+      detail: med.name,
+      responsibleName,
     });
   },
 });

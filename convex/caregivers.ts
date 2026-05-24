@@ -30,3 +30,13 @@ export const rename = mutation({
     return { id: c._id, name: args.newName };
   },
 });
+
+export const setEmail = mutation({
+  args: { id: v.id("caregivers"), email: v.string() },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.id);
+    if (!c) throw new Error("caregiver no existe");
+    await ctx.db.patch(args.id, { email: args.email });
+    return { id: args.id, name: c.name, email: args.email };
+  },
+});

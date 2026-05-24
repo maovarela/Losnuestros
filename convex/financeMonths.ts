@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const listByPatient = query({
   args: { patientId: v.id("patients") },
@@ -165,6 +166,7 @@ export const markServicePaid = mutation({
       )
       .first();
 
+    let resultId: import("./_generated/dataModel").Id<"finance_months">;
     if (existing) {
       const field = PAID_FIELD[args.service];
       await ctx.db.patch(existing._id, {
@@ -173,34 +175,57 @@ export const markServicePaid = mutation({
         responsible_for: responsible,
         updated_at: Date.now(),
       });
-      return existing._id;
+      resultId = existing._id;
+    } else {
+      resultId = await ctx.db.insert("finance_months", {
+        patient_id: args.patientId,
+        month_key: args.monthKey,
+        pension: DEFAULTS.pension,
+        compensar: DEFAULTS.compensar,
+        compensar_paid: args.service === "compensar",
+        enel: DEFAULTS.enel,
+        enel_paid: args.service === "enel",
+        gas: DEFAULTS.gas,
+        gas_paid: args.service === "gas",
+        agua: DEFAULTS.agua,
+        agua_paid: args.service === "agua",
+        internet: DEFAULTS.internet,
+        internet_paid: args.service === "internet",
+        celular: DEFAULTS.celular,
+        celular_paid: args.service === "celular",
+        alarma: DEFAULTS.alarma,
+        alarma_paid: args.service === "alarma",
+        empleada: DEFAULTS.empleada,
+        caja: DEFAULTS.caja,
+        mercado: DEFAULTS.mercado,
+        varios: DEFAULTS.varios,
+        updated_by: args.updatedBy,
+        responsible_for: responsible,
+        updated_at: Date.now(),
+      });
     }
 
-    return await ctx.db.insert("finance_months", {
-      patient_id: args.patientId,
-      month_key: args.monthKey,
-      pension: DEFAULTS.pension,
-      compensar: DEFAULTS.compensar,
-      compensar_paid: args.service === "compensar",
-      enel: DEFAULTS.enel,
-      enel_paid: args.service === "enel",
-      gas: DEFAULTS.gas,
-      gas_paid: args.service === "gas",
-      agua: DEFAULTS.agua,
-      agua_paid: args.service === "agua",
-      internet: DEFAULTS.internet,
-      internet_paid: args.service === "internet",
-      celular: DEFAULTS.celular,
-      celular_paid: args.service === "celular",
-      alarma: DEFAULTS.alarma,
-      alarma_paid: args.service === "alarma",
-      empleada: DEFAULTS.empleada,
-      caja: DEFAULTS.caja,
-      mercado: DEFAULTS.mercado,
-      varios: DEFAULTS.varios,
-      updated_by: args.updatedBy,
-      responsible_for: responsible,
-      updated_at: Date.now(),
+    let responsibleName: string | undefined;
+    if (args.responsibleFor && args.responsibleFor !== args.updatedBy) {
+      const r = await ctx.db.get(args.responsibleFor);
+      responsibleName = r?.name;
+    }
+    const serviceLabel = {
+      compensar: "Compensar",
+      enel: "Energía Enel",
+      gas: "Gas Vanti",
+      agua: "Acueducto EAAB",
+      internet: "Claro internet",
+      celular: "Claro celular",
+      alarma: "Alarma",
+    }[args.service];
+    await ctx.scheduler.runAfter(0, internal.email.sendChangeAlert, {
+      patientId: args.patientId,
+      actorId: args.updatedBy,
+      eventType: "payment",
+      detail: serviceLabel,
+      responsibleName,
     });
+    return resultId;
   },
 });

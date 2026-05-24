@@ -10,6 +10,7 @@ export default defineSchema({
   caregivers: defineTable({
     patient_id: v.id("patients"),
     name: v.string(),
+    email: v.optional(v.string()),
   }).index("by_patient", ["patient_id"]),
 
   invitations: defineTable({

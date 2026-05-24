@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 export const listByPatient = query({
   args: { patientId: v.id("patients") },
@@ -42,13 +43,28 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const { patientId, updatedBy, responsibleFor, ...fields } = args;
-    return await ctx.db.insert("appointments", {
+    const id = await ctx.db.insert("appointments", {
       patient_id: patientId,
       updated_by: updatedBy,
       responsible_for: responsibleFor,
       updated_at: Date.now(),
       ...fields,
     });
+    let responsibleName: string | undefined;
+    if (responsibleFor && responsibleFor !== updatedBy) {
+      const r = await ctx.db.get(responsibleFor);
+      responsibleName = r?.name;
+    }
+    const summary =
+      (fields.doctor ?? "cita") + " (" + fields.date + ")";
+    await ctx.scheduler.runAfter(0, internal.email.sendChangeAlert, {
+      patientId,
+      actorId: updatedBy,
+      eventType: "appointment_created",
+      detail: summary,
+      responsibleName,
+    });
+    return id;
   },
 });
 

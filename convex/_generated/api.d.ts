@@ -10,6 +10,8 @@
 
 import type * as appointments from "../appointments.js";
 import type * as caregivers from "../caregivers.js";
+import type * as crons from "../crons.js";
+import type * as email from "../email.js";
 import type * as financeMonths from "../financeMonths.js";
 import type * as invitations from "../invitations.js";
 import type * as medications from "../medications.js";
@@ -26,6 +28,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   appointments: typeof appointments;
   caregivers: typeof caregivers;
+  crons: typeof crons;
+  email: typeof email;
   financeMonths: typeof financeMonths;
   invitations: typeof invitations;
   medications: typeof medications;

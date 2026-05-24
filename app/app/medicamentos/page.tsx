@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -58,7 +58,15 @@ export default function MedicamentosPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<Id<"medications"> | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savedFlag, setSavedFlag] = useState(false);
+
+  useEffect(() => {
+    if (!savedFlag) return;
+    const t = setTimeout(() => setSavedFlag(false), 3000);
+    return () => clearTimeout(t);
+  }, [savedFlag]);
 
   const alerts = useMemo(() => {
     if (!meds) return { vencidos: [], proximos: [] };
@@ -81,19 +89,22 @@ export default function MedicamentosPage() {
       next_refill: med.next_refill ?? "",
       notes: med.notes ?? "",
     });
+    setNameError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function cancelEdit() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setNameError(null);
   }
 
   async function handleSave() {
     if (!form.name.trim()) {
-      alert("El nombre es obligatorio");
+      setNameError("Necesitamos un nombre para guardarlo");
       return;
     }
+    setNameError(null);
     setSaving(true);
     try {
       const payload = {
@@ -111,24 +122,28 @@ export default function MedicamentosPage() {
         await createMed({ patientId, ...payload });
       }
       cancelEdit();
+      setSavedFlag(true);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: Id<"medications">, name: string) {
-    if (!confirm(`¿Borrar "${name}"?`)) return;
+    const ok = window.confirm(
+      `Vas a quitar "${name}" de la lista de medicamentos. ¿Continuar?`,
+    );
+    if (!ok) return;
     await removeMed({ id });
     if (editingId === id) cancelEdit();
   }
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-6">
+    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
       <Link
         href="/app"
         className="mb-4 inline-block text-sm text-text-2 hover:text-text"
       >
-        ← Volver
+        Volver al inicio
       </Link>
 
       <h1 className="text-xl font-medium">Medicamentos</h1>
@@ -140,8 +155,8 @@ export default function MedicamentosPage() {
               key={m._id}
               className="rounded-lg border border-red-border bg-red-bg px-3 py-2 text-sm text-red"
             >
-              Refill vencido: <strong>{m.name}</strong> — debía hacerse el{" "}
-              {fmtDate(m.next_refill!)}
+              Refill vencido. <strong>{m.name}</strong> debía hacerse el{" "}
+              {fmtDate(m.next_refill!)}.
             </div>
           ))}
         </div>
@@ -151,13 +166,19 @@ export default function MedicamentosPage() {
         <div className="mt-2 space-y-2">
           {alerts.proximos.map((m) => {
             const d = daysUntil(m.next_refill!);
+            const cuando =
+              d === 0
+                ? "hoy"
+                : d === 1
+                  ? "mañana"
+                  : `en ${d} días`;
             return (
               <div
                 key={m._id}
                 className="rounded-lg border border-amber-border bg-amber-bg px-3 py-2 text-sm text-amber"
               >
-                Refill próximo: <strong>{m.name}</strong> —{" "}
-                {d === 0 ? "hoy" : d === 1 ? "mañana" : `en ${d} días`} ({fmtDate(m.next_refill!)})
+                Refill próximo. <strong>{m.name}</strong>, {cuando} (
+                {fmtDate(m.next_refill!)}).
               </div>
             );
           })}
@@ -170,14 +191,20 @@ export default function MedicamentosPage() {
         </div>
         <div className="mt-3 space-y-3">
           <div>
-            <label className="block text-xs text-text-2">Nombre *</label>
+            <label className="block text-xs text-text-2" htmlFor="med-name">
+              Nombre
+            </label>
             <input
+              id="med-name"
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Ej: Atorvastatina 40mg"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              className={`mt-1 w-full rounded-md border bg-bg-2 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${nameError ? "border-red" : "border-border-2 focus:border-blue"}`}
             />
+            {nameError && (
+              <div className="mt-1 text-xs text-red">{nameError}</div>
+            )}
           </div>
           <div>
             <label className="block text-xs text-text-2">Dosis</label>
@@ -186,7 +213,7 @@ export default function MedicamentosPage() {
               value={form.dosage}
               onChange={(e) => setForm({ ...form, dosage: e.target.value })}
               placeholder="Ej: 1 tableta cada 24 horas"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
           <div>
@@ -195,8 +222,8 @@ export default function MedicamentosPage() {
               type="text"
               value={form.doctor}
               onChange={(e) => setForm({ ...form, doctor: e.target.value })}
-              placeholder="Ej: Dr. Bastidas · Medicina Familiar"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              placeholder="Ej: Dr. Bastidas, Medicina Familiar"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -206,7 +233,7 @@ export default function MedicamentosPage() {
                 type="date"
                 value={form.last_refill}
                 onChange={(e) => setForm({ ...form, last_refill: e.target.value })}
-                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
               />
             </div>
             <div>
@@ -215,7 +242,7 @@ export default function MedicamentosPage() {
                 type="date"
                 value={form.next_refill}
                 onChange={(e) => setForm({ ...form, next_refill: e.target.value })}
-                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
               />
             </div>
           </div>
@@ -226,15 +253,18 @@ export default function MedicamentosPage() {
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               placeholder="Ej: Tomar con comida"
               rows={2}
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+          {savedFlag && (
+            <div className="mr-auto text-xs text-green">Cambios guardados</div>
+          )}
           {editingId && (
             <button
               onClick={cancelEdit}
-              className="rounded-md border border-border-2 bg-bg px-3 py-1.5 text-sm hover:bg-bg-2"
+              className="min-h-11 rounded-md border border-border-2 bg-bg px-4 py-2 text-sm hover:bg-bg-2 active:bg-bg-2"
             >
               Cancelar
             </button>
@@ -242,7 +272,7 @@ export default function MedicamentosPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-md bg-text px-4 py-1.5 text-sm font-medium text-bg hover:opacity-85 disabled:opacity-50"
+            className="min-h-11 rounded-md bg-text px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
           >
             {saving ? "Guardando..." : editingId ? "Guardar cambios" : "Agregar"}
           </button>
@@ -254,13 +284,13 @@ export default function MedicamentosPage() {
           Lista
         </div>
         {meds === undefined && (
-          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-3">
+          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
             Cargando...
           </div>
         )}
         {meds && meds.length === 0 && (
-          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-3">
-            No hay medicamentos registrados
+          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
+            Aún no hay medicamentos. Agrega el primero usando el formulario de arriba.
           </div>
         )}
         {meds && meds.length > 0 && (
@@ -275,6 +305,8 @@ export default function MedicamentosPage() {
                     : d <= 7
                       ? { text: `En ${d} día${d === 1 ? "" : "s"}`, className: "bg-amber-bg text-amber" }
                       : { text: fmtDate(m.next_refill!), className: "bg-green-bg text-green" };
+              const showAttribution =
+                m.updated_by && m.updated_by !== caregiverId;
               return (
                 <div
                   key={m._id}
@@ -295,35 +327,37 @@ export default function MedicamentosPage() {
                         </div>
                       )}
                       {m.notes && (
-                        <div className="mt-1 text-xs italic text-text-3">
+                        <div className="mt-1 text-xs italic text-text-2">
                           {m.notes}
                         </div>
                       )}
                     </div>
                     {badge && (
                       <span
-                        className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-medium ${badge.className}`}
+                        className={`shrink-0 rounded-md px-2 py-1 text-xs font-medium ${badge.className}`}
                       >
                         {badge.text}
                       </span>
                     )}
                   </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
-                    <div className="text-xs text-text-3">
-                      {m.updated_by_name
-                        ? `Actualizado por ${m.updated_by_name} ${relativeTime(m.updated_at)}`
-                        : `Cargado ${relativeTime(m.updated_at)}`}
-                    </div>
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                    {showAttribution ? (
+                      <div className="text-xs text-text-2">
+                        Lo actualizó {m.updated_by_name} {relativeTime(m.updated_at)}
+                      </div>
+                    ) : (
+                      <div className="flex-1" />
+                    )}
                     <div className="flex gap-2">
                       <button
                         onClick={() => startEdit(m)}
-                        className="text-xs text-blue hover:underline"
+                        className="min-h-9 rounded-md border border-border-2 px-3 py-1.5 text-xs font-medium text-text hover:bg-bg-2 active:bg-bg-2"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleDelete(m._id, m.name)}
-                        className="text-xs text-red hover:underline"
+                        className="min-h-9 rounded-md border border-red-border px-3 py-1.5 text-xs font-medium text-red hover:bg-red-bg active:bg-red-bg"
                       >
                         Borrar
                       </button>
@@ -335,6 +369,6 @@ export default function MedicamentosPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

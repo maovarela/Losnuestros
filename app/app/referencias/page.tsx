@@ -36,12 +36,12 @@ export default function ReferenciasPage() {
   }, [refs]);
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-6">
+    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
       <Link
         href="/app"
         className="mb-4 inline-block text-sm text-text-2 hover:text-text"
       >
-        ← Volver
+        Volver al inicio
       </Link>
 
       <h1 className="text-xl font-medium">Referencias de pago</h1>
@@ -138,6 +138,6 @@ export default function ReferenciasPage() {
           </div>
         </>
       )}
-    </div>
+    </main>
   );
 }

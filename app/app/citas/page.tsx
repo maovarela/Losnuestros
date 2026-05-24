@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -58,7 +58,15 @@ export default function CitasPage() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<Id<"appointments"> | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savedFlag, setSavedFlag] = useState(false);
+
+  useEffect(() => {
+    if (!savedFlag) return;
+    const t = setTimeout(() => setSavedFlag(false), 3000);
+    return () => clearTimeout(t);
+  }, [savedFlag]);
 
   const sorted = useMemo(() => {
     if (!citas) return [];
@@ -83,19 +91,22 @@ export default function CitasPage() {
       next_appointment: cita.next_appointment ?? "",
       notes: cita.notes ?? "",
     });
+    setDateError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function cancelEdit() {
     setEditingId(null);
     setForm(EMPTY_FORM);
+    setDateError(null);
   }
 
   async function handleSave() {
     if (!form.date) {
-      alert("La fecha es obligatoria");
+      setDateError("Necesitamos la fecha de la cita");
       return;
     }
+    setDateError(null);
     setSaving(true);
     try {
       const payload = {
@@ -113,24 +124,28 @@ export default function CitasPage() {
         await createCita({ patientId, ...payload });
       }
       cancelEdit();
+      setSavedFlag(true);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: Id<"appointments">, label: string) {
-    if (!confirm(`¿Borrar "${label}"?`)) return;
+    const ok = window.confirm(
+      `Vas a quitar "${label}" del historial. ¿Continuar?`,
+    );
+    if (!ok) return;
     await removeCita({ id });
     if (editingId === id) cancelEdit();
   }
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-6">
+    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
       <Link
         href="/app"
         className="mb-4 inline-block text-sm text-text-2 hover:text-text"
       >
-        ← Volver
+        Volver al inicio
       </Link>
 
       <h1 className="text-xl font-medium">Citas médicas</h1>
@@ -165,13 +180,16 @@ export default function CitasPage() {
         <div className="mt-3 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-text-2">Fecha *</label>
+              <label className="block text-xs text-text-2">Fecha</label>
               <input
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+                className={`mt-1 w-full rounded-md border bg-bg-2 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${dateError ? "border-red" : "border-border-2 focus:border-blue"}`}
               />
+              {dateError && (
+                <div className="mt-1 text-xs text-red">{dateError}</div>
+              )}
             </div>
             <div>
               <label className="block text-xs text-text-2">Próxima programada</label>
@@ -179,7 +197,7 @@ export default function CitasPage() {
                 type="date"
                 value={form.next_appointment}
                 onChange={(e) => setForm({ ...form, next_appointment: e.target.value })}
-                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
               />
             </div>
           </div>
@@ -189,8 +207,8 @@ export default function CitasPage() {
               type="text"
               value={form.doctor}
               onChange={(e) => setForm({ ...form, doctor: e.target.value })}
-              placeholder="Ej: Neurología · Dra. Medina"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              placeholder="Ej: Neurología, Dra. Medina"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
           <div>
@@ -200,7 +218,7 @@ export default function CitasPage() {
               value={form.reason}
               onChange={(e) => setForm({ ...form, reason: e.target.value })}
               placeholder="Ej: Control neurológico"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
           <div>
@@ -210,7 +228,7 @@ export default function CitasPage() {
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
               placeholder="Ej: Piso 11, Consultorio 22, Edificio El Bosque"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
           <div>
@@ -220,15 +238,18 @@ export default function CitasPage() {
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               placeholder="Ej: Tensión 130/80. Cambia dosis. Pedir examen de sangre."
               rows={3}
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+          {savedFlag && (
+            <div className="mr-auto text-xs text-green">Cambios guardados</div>
+          )}
           {editingId && (
             <button
               onClick={cancelEdit}
-              className="rounded-md border border-border-2 bg-bg px-3 py-1.5 text-sm hover:bg-bg-2"
+              className="min-h-11 rounded-md border border-border-2 bg-bg px-4 py-2 text-sm hover:bg-bg-2 active:bg-bg-2"
             >
               Cancelar
             </button>
@@ -236,7 +257,7 @@ export default function CitasPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-md bg-text px-4 py-1.5 text-sm font-medium text-bg hover:opacity-85 disabled:opacity-50"
+            className="min-h-11 rounded-md bg-text px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
           >
             {saving ? "Guardando..." : editingId ? "Guardar cambios" : "Agregar"}
           </button>
@@ -248,13 +269,13 @@ export default function CitasPage() {
           Historial
         </div>
         {citas === undefined && (
-          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-3">
+          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
             Cargando...
           </div>
         )}
         {citas && citas.length === 0 && (
-          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-3">
-            No hay citas registradas
+          <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
+            Aún no hay citas. Agrega la primera usando el formulario de arriba.
           </div>
         )}
         {sorted.length > 0 && (
@@ -262,6 +283,8 @@ export default function CitasPage() {
             {sorted.map((c) => {
               const d = daysUntil(c.date);
               const isFuture = d >= 0;
+              const showAttribution =
+                c.updated_by && c.updated_by !== caregiverId;
               return (
                 <div
                   key={c._id}
@@ -286,7 +309,7 @@ export default function CitasPage() {
                         <div className="mt-1 text-xs text-text-2">{c.reason}</div>
                       )}
                       {c.location && (
-                        <div className="mt-1 text-xs text-text-3">
+                        <div className="mt-1 text-xs text-text-2">
                           {c.location}
                         </div>
                       )}
@@ -303,22 +326,26 @@ export default function CitasPage() {
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-border pt-2">
-                    <div className="text-xs text-text-3">
-                      {c.updated_by_name
-                        ? `Actualizado por ${c.updated_by_name} ${relativeTime(c.updated_at)}`
-                        : `Cargado ${relativeTime(c.updated_at)}`}
-                    </div>
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                    {showAttribution ? (
+                      <div className="text-xs text-text-2">
+                        La actualizó {c.updated_by_name} {relativeTime(c.updated_at)}
+                      </div>
+                    ) : (
+                      <div className="flex-1" />
+                    )}
                     <div className="flex gap-2">
                       <button
                         onClick={() => startEdit(c)}
-                        className="text-xs text-blue hover:underline"
+                        className="min-h-9 rounded-md border border-border-2 px-3 py-1.5 text-xs font-medium text-text hover:bg-bg-2 active:bg-bg-2"
                       >
                         Editar
                       </button>
                       <button
-                        onClick={() => handleDelete(c._id, c.doctor ?? fmtDate(c.date))}
-                        className="text-xs text-red hover:underline"
+                        onClick={() =>
+                          handleDelete(c._id, c.doctor ?? fmtDate(c.date))
+                        }
+                        className="min-h-9 rounded-md border border-red-border px-3 py-1.5 text-xs font-medium text-red hover:bg-red-bg active:bg-red-bg"
                       >
                         Borrar
                       </button>
@@ -330,6 +357,6 @@ export default function CitasPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

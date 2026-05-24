@@ -21,22 +21,16 @@ const MESES = [
   "Diciembre",
 ];
 
-const ANIOS = [2025, 2026, 2027, 2028];
-
 const DEFAULTS = {
   pension: 4299866,
-  prima: 0,
   compensar: 617200,
   enel: 252470,
   gas: 61110,
-  agua: 0,
   empleada: 1080000,
   caja: 1200000,
   mercado: 400000,
   internet: 102000,
   celular: 55000,
-  alarma: 0,
-  varios: 0,
 };
 
 const rtf = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
@@ -63,6 +57,24 @@ function monthLabel(key: string): string {
 function currentMonthKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function previousMonthKey(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthKeysRange(): string[] {
+  const out: string[] = [];
+  const start = new Date();
+  start.setMonth(start.getMonth() + 3);
+  for (let i = 0; i < 36; i++) {
+    const k = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`;
+    out.push(k);
+    start.setMonth(start.getMonth() - 1);
+  }
+  return out;
 }
 
 type FormState = {
@@ -127,6 +139,7 @@ export default function FinanzasPage() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
+  const [savedFlag, setSavedFlag] = useState(false);
 
   const monthData = useQuery(api.financeMonths.getByMonth, {
     patientId,
@@ -135,6 +148,12 @@ export default function FinanzasPage() {
   const history = useQuery(api.financeMonths.listByPatient, { patientId });
   const upsert = useMutation(api.financeMonths.upsert);
   const remove = useMutation(api.financeMonths.remove);
+
+  useEffect(() => {
+    if (!savedFlag) return;
+    const t = setTimeout(() => setSavedFlag(false), 3000);
+    return () => clearTimeout(t);
+  }, [savedFlag]);
 
   useEffect(() => {
     if (monthData === undefined) return;
@@ -185,7 +204,8 @@ export default function FinanzasPage() {
     const teorico = ingreso - gastos;
     const banco = num(form.saldo_banco);
     const dif = banco - teorico;
-    return { ingreso, gastos, teorico, banco, dif };
+    const hasBanco = form.saldo_banco.trim() !== "";
+    return { ingreso, gastos, teorico, banco, dif, hasBanco };
   }, [form]);
 
   async function handleSave() {
@@ -215,16 +235,20 @@ export default function FinanzasPage() {
         caja: num(form.caja),
         mercado: num(form.mercado),
         varios: num(form.varios),
-        saldo_banco: form.saldo_banco ? num(form.saldo_banco) : undefined,
+        saldo_banco: form.saldo_banco.trim() ? num(form.saldo_banco) : undefined,
         nota: form.nota.trim() || undefined,
       });
+      setSavedFlag(true);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: Id<"finance_months">, key: string) {
-    if (!confirm(`¿Borrar el registro de ${monthLabel(key)}?`)) return;
+    const ok = window.confirm(
+      `Vas a borrar el registro de ${monthLabel(key)}. ¿Continuar?`,
+    );
+    if (!ok) return;
     await remove({ id });
   }
 
@@ -238,53 +262,72 @@ export default function FinanzasPage() {
     Math.abs(totals.dif) < 10000
       ? "Cuadra"
       : totals.dif > 0
-        ? "Banco tiene más de lo esperado"
-        : "Banco tiene menos de lo esperado";
+        ? "Hay más en el banco de lo esperado"
+        : "Faltan pesos en el banco frente a lo calculado";
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-6">
+    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
       <Link
         href="/app"
         className="mb-4 inline-block text-sm text-text-2 hover:text-text"
       >
-        ← Volver
+        Volver al inicio
       </Link>
 
       <h1 className="text-xl font-medium">Finanzas mensuales</h1>
 
       <div className="mt-4 rounded-xl border border-border bg-bg p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-medium">Registrar mes</div>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
-          >
-            {ANIOS.flatMap((a) =>
-              MESES.map((m, i) => {
-                const key = `${a}-${String(i + 1).padStart(2, "0")}`;
-                return (
-                  <option key={key} value={key}>
-                    {m} {a}
-                  </option>
-                );
-              }),
-            )}
-          </select>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm font-medium">Mes</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setSelectedMonth(currentMonthKey())}
+              className={`min-h-9 rounded-md border px-3 py-1.5 text-xs font-medium active:bg-bg-2 ${selectedMonth === currentMonthKey() ? "border-text bg-text text-bg" : "border-border-2 bg-bg text-text hover:bg-bg-2"}`}
+            >
+              Mes actual
+            </button>
+            <button
+              onClick={() => setSelectedMonth(previousMonthKey())}
+              className={`min-h-9 rounded-md border px-3 py-1.5 text-xs font-medium active:bg-bg-2 ${selectedMonth === previousMonthKey() ? "border-text bg-text text-bg" : "border-border-2 bg-bg text-text hover:bg-bg-2"}`}
+            >
+              Mes pasado
+            </button>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="min-h-9 rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-xs focus:border-blue focus:outline-none"
+            >
+              {monthKeysRange().map((k) => (
+                <option key={k} value={k}>
+                  {monthLabel(k)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+        <div className="mt-2 text-xs text-text-2">
+          Editando {monthLabel(selectedMonth)}
+        </div>
+      </div>
 
-        <div className="mt-4 space-y-3">
+      <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+        <SectionLabel>Ingresos</SectionLabel>
+        <div className="mt-2 space-y-3">
           <MoneyRow
             label="Pensión recibida"
             value={form.pension}
             onChange={(v) => setForm({ ...form, pension: v })}
           />
           <MoneyRow
-            label="Prima (jun / dic)"
+            label="Prima (junio o diciembre)"
             value={form.prima}
             onChange={(v) => setForm({ ...form, prima: v })}
             placeholder="0"
           />
+        </div>
+
+        <SectionLabel className="mt-5">Servicios públicos</SectionLabel>
+        <div className="mt-2 space-y-3">
           <MoneyPaidRow
             label="Compensar salud"
             value={form.compensar}
@@ -328,12 +371,16 @@ export default function FinanzasPage() {
             onPaid={(p) => setForm({ ...form, celular_paid: p })}
           />
           <MoneyPaidRow
-            label="Alarma (paga hermana)"
+            label="Alarma (la paga la hermana)"
             value={form.alarma}
             paid={form.alarma_paid}
             onChange={(v) => setForm({ ...form, alarma: v })}
             onPaid={(p) => setForm({ ...form, alarma_paid: p })}
           />
+        </div>
+
+        <SectionLabel className="mt-5">Gastos del hogar</SectionLabel>
+        <div className="mt-2 space-y-3">
           <MoneyRow
             label="Empleada doméstica"
             value={form.empleada}
@@ -350,14 +397,14 @@ export default function FinanzasPage() {
             onChange={(v) => setForm({ ...form, mercado: v })}
           />
           <MoneyRow
-            label="Imprevistos / varios"
+            label="Imprevistos o varios"
             value={form.varios}
             onChange={(v) => setForm({ ...form, varios: v })}
             placeholder="0"
           />
         </div>
 
-        <div className="mt-4 rounded-lg border border-border-2 p-3">
+        <div className="mt-5 rounded-lg border border-border-2 p-3">
           <div className="text-xs font-medium text-text-2">
             Saldo real en cuenta bancaria al cierre del mes
           </div>
@@ -365,10 +412,11 @@ export default function FinanzasPage() {
             <span className="text-sm text-text-2">Saldo en banco</span>
             <input
               type="number"
+              inputMode="numeric"
               value={form.saldo_banco}
               onChange={(e) => setForm({ ...form, saldo_banco: e.target.value })}
               placeholder="0"
-              className="w-40 rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-right text-sm focus:border-blue focus:outline-none"
+              className="w-40 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-right text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             />
           </div>
         </div>
@@ -380,15 +428,18 @@ export default function FinanzasPage() {
             onChange={(e) => setForm({ ...form, nota: e.target.value })}
             placeholder="Ej: Se pagó médico por gripa $85.000. Llegó factura bimestral del agua."
             rows={2}
-            className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-sm focus:border-blue focus:outline-none"
+            className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+          {savedFlag && (
+            <div className="mr-auto text-xs text-green">Cambios guardados</div>
+          )}
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-md bg-text px-4 py-1.5 text-sm font-medium text-bg hover:opacity-85 disabled:opacity-50"
+            className="min-h-11 rounded-md bg-text px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
           >
             {saving ? "Guardando..." : "Guardar mes"}
           </button>
@@ -396,7 +447,9 @@ export default function FinanzasPage() {
       </div>
 
       <div className="mt-6 rounded-xl border border-border bg-bg p-4">
-        <div className="text-sm font-medium">Resumen de {monthLabel(selectedMonth)}</div>
+        <div className="text-sm font-medium">
+          Resumen de {monthLabel(selectedMonth)}
+        </div>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Metric label="Ingreso" value={fmtCOP(totals.ingreso)} className="text-green" />
           <Metric label="Gastos" value={fmtCOP(totals.gastos)} className="text-red" />
@@ -406,7 +459,7 @@ export default function FinanzasPage() {
             className="text-text-2"
             sub="calculado"
           />
-          {totals.banco > 0 && (
+          {totals.hasBanco && (
             <Metric
               label="Saldo banco"
               value={fmtCOP(totals.banco)}
@@ -415,7 +468,7 @@ export default function FinanzasPage() {
             />
           )}
         </div>
-        {totals.banco > 0 && (
+        {totals.hasBanco && (
           <div className="mt-3 rounded-lg border border-border-2 p-3 text-sm">
             <div className="flex items-baseline justify-between">
               <span className="text-text-2">Diferencia</span>
@@ -427,8 +480,11 @@ export default function FinanzasPage() {
           </div>
         )}
         {monthData && monthData.updated_at && (
-          <div className="mt-3 border-t border-border pt-2 text-xs text-text-3">
+          <div className="mt-3 border-t border-border pt-2 text-xs text-text-2">
             Actualizado {relativeTime(monthData.updated_at)}
+            {monthData.updated_by && monthData.updated_by !== caregiverId && (
+              <span> por otra cuidadora</span>
+            )}
           </div>
         )}
       </div>
@@ -441,7 +497,7 @@ export default function FinanzasPage() {
           <div className="overflow-x-auto rounded-xl border border-border bg-bg">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-xs uppercase tracking-wider text-text-3">
+                <tr className="border-b border-border text-xs uppercase tracking-wider text-text-2">
                   <th className="px-3 py-2 text-left">Mes</th>
                   <th className="px-3 py-2 text-right">Ingreso</th>
                   <th className="px-3 py-2 text-right">Gastos</th>
@@ -468,14 +524,14 @@ export default function FinanzasPage() {
                   const teorico = ingreso - gastos;
                   const banco = m.saldo_banco ?? 0;
                   const dif = banco - teorico;
-                  const cls =
-                    banco === 0
-                      ? "text-text-3"
-                      : Math.abs(dif) < 10000
-                        ? "text-green"
-                        : dif < 0
-                          ? "text-red"
-                          : "text-amber";
+                  const hasBanco = m.saldo_banco !== undefined;
+                  const cls = !hasBanco
+                    ? "text-text-2"
+                    : Math.abs(dif) < 10000
+                      ? "text-green"
+                      : dif < 0
+                        ? "text-red"
+                        : "text-amber";
                   return (
                     <tr key={m._id} className="border-b border-border last:border-0">
                       <td className="px-3 py-2 font-medium">
@@ -496,12 +552,12 @@ export default function FinanzasPage() {
                         {fmtCOP(teorico)}
                       </td>
                       <td className={`px-3 py-2 text-right ${cls}`}>
-                        {banco > 0 ? fmtCOP(banco) : "—"}
+                        {hasBanco ? fmtCOP(banco) : "Sin dato"}
                       </td>
                       <td className="px-3 py-2 text-right">
                         <button
                           onClick={() => handleDelete(m._id, m.month_key)}
-                          className="text-xs text-red hover:underline"
+                          className="min-h-8 rounded-md border border-red-border px-2 py-1 text-xs font-medium text-red active:bg-red-bg hover:bg-red-bg"
                         >
                           Borrar
                         </button>
@@ -512,11 +568,27 @@ export default function FinanzasPage() {
               </tbody>
             </table>
           </div>
-          <div className="mt-2 text-xs text-text-3">
-            Teórico = ingreso menos gastos. Diferencia mayor a $10.000 aparece en amarillo o rojo.
+          <div className="mt-2 text-xs text-text-2">
+            Teórico es ingresos menos gastos. Diferencia mayor a $10.000 con el banco aparece en amarillo o rojo.
           </div>
         </div>
       )}
+    </main>
+  );
+}
+
+function SectionLabel({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`text-xs font-medium uppercase tracking-wider text-text-3 ${className ?? ""}`}
+    >
+      {children}
     </div>
   );
 }
@@ -537,10 +609,11 @@ function MoneyRow({
       <span className="text-sm text-text-2">{label}</span>
       <input
         type="number"
+        inputMode="numeric"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? "0"}
-        className="w-40 rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-right text-sm focus:border-blue focus:outline-none"
+        className="w-40 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-right text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
       />
     </div>
   );
@@ -565,16 +638,18 @@ function MoneyPaidRow({
       <div className="flex items-center gap-3">
         <input
           type="number"
+          inputMode="numeric"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="0"
-          className="w-32 rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-right text-sm focus:border-blue focus:outline-none"
+          className="w-32 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-right text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
         />
-        <label className="flex items-center gap-1 text-xs text-text-2">
+        <label className="flex min-h-11 items-center gap-2 text-sm text-text-2">
           <input
             type="checkbox"
             checked={paid}
             onChange={(e) => onPaid(e.target.checked)}
+            className="h-5 w-5"
           />
           Pagado
         </label>

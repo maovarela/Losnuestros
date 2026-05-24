@@ -134,11 +134,19 @@ export default function AppHome() {
   }, [meds, citas, refs, finance]);
 
   const loading = meds === undefined || citas === undefined || refs === undefined;
+  const groupedAlerts = useMemo(() => {
+    const vencidos = alerts.filter((a) => a.severity === "danger");
+    const proximos = alerts.filter((a) => a.severity !== "danger");
+    return { vencidos, proximos };
+  }, [alerts]);
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-6">
+    <main className="mx-auto w-full max-w-[720px] px-4 py-6">
       <div className="flex items-center gap-4 rounded-xl border border-border bg-bg-2 px-6 py-5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-bg text-base font-medium text-blue">
+        <div
+          aria-hidden="true"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-bg text-base font-medium text-blue"
+        >
           {patientInitials}
         </div>
         <div className="min-w-0 flex-1">
@@ -149,34 +157,60 @@ export default function AppHome() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-border bg-bg p-4">
+      <section
+        aria-label="Resumen del día"
+        className="mt-6 rounded-xl border border-border bg-bg p-4"
+      >
         <div className="text-xs font-medium uppercase tracking-wider text-text-3">
           Hoy
         </div>
         {loading && (
-          <div className="mt-2 text-sm text-text-3">Cargando...</div>
+          <div className="mt-2 text-sm text-text-2">Cargando...</div>
         )}
         {!loading && alerts.length === 0 && (
           <div className="mt-2 rounded-lg border border-green-border bg-green-bg px-3 py-2 text-sm text-green">
             Todo al día. Sin pagos vencidos, refills próximos ni citas en los próximos días.
           </div>
         )}
-        {!loading && alerts.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {alerts.map((a) => (
-              <div
-                key={a.key}
-                className={`rounded-lg border px-3 py-2 ${alertClass(a.severity)}`}
-              >
-                <div className="text-sm font-medium">{a.title}</div>
-                <div className="text-xs opacity-85">{a.sub}</div>
-              </div>
-            ))}
+        {!loading && groupedAlerts.vencidos.length > 0 && (
+          <div className="mt-2">
+            <div className="mb-1 text-xs font-medium text-red">
+              Atrasados ({groupedAlerts.vencidos.length})
+            </div>
+            <div className="space-y-2">
+              {groupedAlerts.vencidos.map((a) => (
+                <div
+                  key={a.key}
+                  className={`rounded-lg border px-3 py-2 ${alertClass(a.severity)}`}
+                >
+                  <div className="text-sm font-medium">{a.title}</div>
+                  <div className="text-xs opacity-85">{a.sub}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
+        {!loading && groupedAlerts.proximos.length > 0 && (
+          <div className="mt-3">
+            <div className="mb-1 text-xs font-medium text-amber">
+              Esta semana ({groupedAlerts.proximos.length})
+            </div>
+            <div className="space-y-2">
+              {groupedAlerts.proximos.map((a) => (
+                <div
+                  key={a.key}
+                  className={`rounded-lg border px-3 py-2 ${alertClass(a.severity)}`}
+                >
+                  <div className="text-sm font-medium">{a.title}</div>
+                  <div className="text-xs opacity-85">{a.sub}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
-      <div className="mt-6 space-y-3">
+      <nav className="mt-6 space-y-3">
         <Link
           href="/app/medicamentos"
           className="block rounded-xl border border-border bg-bg p-5 transition-colors hover:bg-bg-2"
@@ -216,8 +250,8 @@ export default function AppHome() {
             Pensión, gastos y reconciliación bancaria
           </div>
         </Link>
-      </div>
-    </div>
+      </nav>
+    </main>
   );
 }
 

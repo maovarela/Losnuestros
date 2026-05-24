@@ -4,10 +4,10 @@ import { getSession } from "@/lib/session-server";
 type ErrorReason = "consumed" | "expired" | "invalid" | "server";
 
 const ERROR_MESSAGES: Record<ErrorReason, string> = {
-  consumed: "Este link ya fue usado. Pedile a quien te lo envió que te genere otro.",
-  expired: "Este link venció. Pedile a quien te lo envió que te genere otro.",
-  invalid: "Este link no es válido. Verificá que esté completo.",
-  server: "Hubo un problema del lado del servidor. Intentá de nuevo en un rato.",
+  consumed: "Este link ya fue usado. Pídele a quien te lo envió que te genere otro.",
+  expired: "Este link venció. Pídele a quien te lo envió que te genere otro.",
+  invalid: "Este link no es válido. Verifica que esté completo.",
+  server: "Hubo un problema del lado del servidor. Intenta de nuevo en un rato.",
 };
 
 export default async function Home({
@@ -23,14 +23,17 @@ export default async function Home({
     error && error in ERROR_MESSAGES ? ERROR_MESSAGES[error as ErrorReason] : null;
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-4 py-10">
+    <main className="mx-auto w-full max-w-[720px] px-4 py-10">
       <div className="flex items-center gap-4 rounded-xl border border-border bg-bg-2 px-6 py-5">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-bg text-base font-medium text-blue">
-          AO
+        <div
+          aria-hidden="true"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-bg text-base font-medium text-blue"
+        >
+          LN
         </div>
         <div>
-          <div className="text-lg font-medium">Ana María Ortega Salcedo</div>
-          <div className="text-sm text-text-2">Organizador familiar</div>
+          <div className="text-lg font-medium">Organizador familiar</div>
+          <div className="text-sm text-text-2">Acceso solo por invitación</div>
         </div>
       </div>
 
@@ -43,9 +46,9 @@ export default async function Home({
 
       <div className="mt-6 rounded-xl border border-border bg-bg p-6">
         <div className="text-sm text-text-2">
-          Esta app se accede por un link de invitación. Pedile a quien te configuró el acceso que te lo comparta.
+          Esta app se accede por un link de invitación. Pídele a quien te configuró el acceso que te lo comparta.
         </div>
       </div>
-    </div>
+    </main>
   );
 }

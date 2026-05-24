@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -61,6 +62,29 @@ export default function MedicamentosPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedFlag, setSavedFlag] = useState(false);
+
+  const searchParams = useSearchParams();
+  const handledEditRef = useRef(false);
+
+  useEffect(() => {
+    if (handledEditRef.current) return;
+    const editId = searchParams.get("edit");
+    if (!editId || !meds) return;
+    const target = meds.find((m) => m._id === editId);
+    if (!target) return;
+    handledEditRef.current = true;
+    setEditingId(target._id);
+    setForm({
+      name: target.name,
+      dosage: target.dosage ?? "",
+      doctor: target.doctor ?? "",
+      last_refill: target.last_refill ?? "",
+      next_refill: target.next_refill ?? "",
+      notes: target.notes ?? "",
+    });
+    setNameError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [searchParams, meds]);
 
   useEffect(() => {
     if (!savedFlag) return;

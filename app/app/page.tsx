@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
 
 function daysUntilISO(iso: string): number {
@@ -23,15 +24,43 @@ function currentMonthKey(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+type ServiceKey =
+  | "compensar"
+  | "enel"
+  | "gas"
+  | "agua"
+  | "internet"
+  | "celular"
+  | "alarma";
+
+type Cta =
+  | { kind: "refill"; medId: Id<"medications"> }
+  | { kind: "pay"; service: ServiceKey }
+  | { kind: "viewCita"; citaId: Id<"appointments"> };
+
 type Alert = {
   key: string;
   severity: "danger" | "warn" | "info";
   title: string;
   sub: string;
+  cta: Cta;
 };
 
+function mapServiceToFinanceKey(name: string): ServiceKey | null {
+  const n = name.toLowerCase();
+  if (n.includes("compensar")) return "compensar";
+  if (n.includes("enel") || n.includes("codensa")) return "enel";
+  if (n.includes("vanti") || n.includes("gas")) return "gas";
+  if (n.includes("eaab") || n.includes("acueducto") || n.includes("agua")) return "agua";
+  if (n.includes("internet")) return "internet";
+  if (n.includes("celular")) return "celular";
+  if (n.includes("alarma")) return "alarma";
+  return null;
+}
+
 export default function AppHome() {
-  const { patientId, patientName, patientInitials, caregiverName } = useAppContext();
+  const { patientId, patientName, patientInitials, caregiverId, caregiverName } =
+    useAppContext();
   const monthKey = currentMonthKey();
 
   const meds = useQuery(api.medications.listByPatient, { patientId });
@@ -41,6 +70,11 @@ export default function AppHome() {
     patientId,
     monthKey,
   });
+
+  const markRefilled = useMutation(api.medications.markRefilled);
+  const markServicePaid = useMutation(api.financeMonths.markServicePaid);
+
+  const [pending, setPending] = useState<string | null>(null);
 
   const alerts = useMemo<Alert[]>(() => {
     const out: Alert[] = [];
@@ -55,6 +89,7 @@ export default function AppHome() {
             severity: "danger",
             title: `Refill vencido: ${m.name}`,
             sub: `Debía hacerse el ${fmtDate(m.next_refill)}`,
+            cta: { kind: "refill", medId: m._id },
           });
         } else if (d <= 7) {
           out.push({
@@ -67,6 +102,7 @@ export default function AppHome() {
                 : d === 1
                   ? `Mañana (${fmtDate(m.next_refill)})`
                   : `En ${d} días (${fmtDate(m.next_refill)})`,
+            cta: { kind: "refill", medId: m._id },
           });
         }
       }
@@ -83,13 +119,14 @@ export default function AppHome() {
             (d === 0 ? "Hoy: " : d === 1 ? "Mañana: " : `En ${d} días: `) +
             (c.doctor ?? "Cita médica"),
           sub: fmtDate(c.date) + (c.location ? ` · ${c.location}` : ""),
+          cta: { kind: "viewCita", citaId: c._id },
         });
       }
     }
 
     if (refs) {
       const today = new Date().getDate();
-      const paidMap: Record<string, boolean> = finance
+      const paidMap: Partial<Record<ServiceKey, boolean>> = finance
         ? {
             compensar: finance.compensar_paid,
             enel: finance.enel_paid,
@@ -105,7 +142,7 @@ export default function AppHome() {
         if (r.category !== "service" || !r.due_day || r.frequency !== "monthly")
           continue;
         const key = mapServiceToFinanceKey(r.service_name);
-        if (key && paidMap[key]) continue;
+        if (!key || paidMap[key]) continue;
         const diff = r.due_day - today;
         if (diff < 0) {
           out.push({
@@ -113,6 +150,7 @@ export default function AppHome() {
             severity: "danger",
             title: `${r.service_name}: vencido`,
             sub: `Debía pagarse antes del ${r.due_day}`,
+            cta: { kind: "pay", service: key },
           });
         } else if (diff <= 5) {
           out.push({
@@ -120,6 +158,7 @@ export default function AppHome() {
             severity: "warn",
             title: `${r.service_name}: vence en ${diff} día${diff === 1 ? "" : "s"}`,
             sub: `Antes del ${r.due_day} de este mes`,
+            cta: { kind: "pay", service: key },
           });
         }
       }
@@ -139,6 +178,24 @@ export default function AppHome() {
     const proximos = alerts.filter((a) => a.severity !== "danger");
     return { vencidos, proximos };
   }, [alerts]);
+
+  async function handleCta(alert: Alert) {
+    setPending(alert.key);
+    try {
+      if (alert.cta.kind === "refill") {
+        await markRefilled({ id: alert.cta.medId, updatedBy: caregiverId });
+      } else if (alert.cta.kind === "pay") {
+        await markServicePaid({
+          patientId,
+          updatedBy: caregiverId,
+          monthKey,
+          service: alert.cta.service,
+        });
+      }
+    } finally {
+      setPending(null);
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-4 py-6">
@@ -179,13 +236,12 @@ export default function AppHome() {
             </div>
             <div className="space-y-2">
               {groupedAlerts.vencidos.map((a) => (
-                <div
+                <AlertCard
                   key={a.key}
-                  className={`rounded-lg border px-3 py-2 ${alertClass(a.severity)}`}
-                >
-                  <div className="text-sm font-medium">{a.title}</div>
-                  <div className="text-xs opacity-85">{a.sub}</div>
-                </div>
+                  alert={a}
+                  pending={pending === a.key}
+                  onCta={() => handleCta(a)}
+                />
               ))}
             </div>
           </div>
@@ -197,13 +253,12 @@ export default function AppHome() {
             </div>
             <div className="space-y-2">
               {groupedAlerts.proximos.map((a) => (
-                <div
+                <AlertCard
                   key={a.key}
-                  className={`rounded-lg border px-3 py-2 ${alertClass(a.severity)}`}
-                >
-                  <div className="text-sm font-medium">{a.title}</div>
-                  <div className="text-xs opacity-85">{a.sub}</div>
-                </div>
+                  alert={a}
+                  pending={pending === a.key}
+                  onCta={() => handleCta(a)}
+                />
               ))}
             </div>
           </div>
@@ -255,20 +310,57 @@ export default function AppHome() {
   );
 }
 
+function AlertCard({
+  alert,
+  pending,
+  onCta,
+}: {
+  alert: Alert;
+  pending: boolean;
+  onCta: () => void;
+}) {
+  const colorClasses = alertClass(alert.severity);
+  const buttonClasses =
+    alert.severity === "danger"
+      ? "bg-red text-bg border-red active:opacity-80 hover:opacity-85"
+      : alert.severity === "warn"
+        ? "bg-amber text-bg border-amber active:opacity-80 hover:opacity-85"
+        : "bg-blue text-bg border-blue active:opacity-80 hover:opacity-85";
+
+  return (
+    <div className={`rounded-lg border px-3 py-3 ${colorClasses}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">{alert.title}</div>
+          <div className="text-xs opacity-85">{alert.sub}</div>
+        </div>
+        {alert.cta.kind === "viewCita" ? (
+          <Link
+            href={`/app/citas?edit=${alert.cta.citaId}`}
+            className={`min-h-9 shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium ${buttonClasses}`}
+          >
+            Ver cita
+          </Link>
+        ) : (
+          <button
+            onClick={onCta}
+            disabled={pending}
+            className={`min-h-9 shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${buttonClasses}`}
+          >
+            {pending
+              ? "..."
+              : alert.cta.kind === "refill"
+                ? "Hice el refill"
+                : "Marcar pagado"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function alertClass(s: "danger" | "warn" | "info"): string {
   if (s === "danger") return "border-red-border bg-red-bg text-red";
   if (s === "warn") return "border-amber-border bg-amber-bg text-amber";
   return "border-blue-border bg-blue-bg text-blue";
-}
-
-function mapServiceToFinanceKey(name: string): string | null {
-  const n = name.toLowerCase();
-  if (n.includes("compensar")) return "compensar";
-  if (n.includes("enel") || n.includes("codensa")) return "enel";
-  if (n.includes("vanti") || n.includes("gas")) return "gas";
-  if (n.includes("eaab") || n.includes("acueducto") || n.includes("agua")) return "agua";
-  if (n.includes("internet")) return "internet";
-  if (n.includes("celular")) return "celular";
-  if (n.includes("alarma")) return "alarma";
-  return null;
 }

@@ -65,3 +65,48 @@ export const remove = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function addDaysISO(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+}
+
+function diffDays(a: string, b: string): number {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  return Math.round(
+    (new Date(by, bm - 1, bd).getTime() - new Date(ay, am - 1, ad).getTime()) /
+      86400000,
+  );
+}
+
+export const markRefilled = mutation({
+  args: {
+    id: v.id("medications"),
+    updatedBy: v.id("caregivers"),
+  },
+  handler: async (ctx, args) => {
+    const med = await ctx.db.get(args.id);
+    if (!med) throw new Error("medication not found");
+
+    const today = todayISO();
+    let interval = 30;
+    if (med.last_refill && med.next_refill) {
+      const prev = diffDays(med.last_refill, med.next_refill);
+      if (prev > 0) interval = prev;
+    }
+    await ctx.db.patch(args.id, {
+      last_refill: today,
+      next_refill: addDaysISO(today, interval),
+      updated_by: args.updatedBy,
+      updated_at: Date.now(),
+    });
+  },
+});

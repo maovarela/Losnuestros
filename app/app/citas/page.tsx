@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -61,6 +62,29 @@ export default function CitasPage() {
   const [dateError, setDateError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedFlag, setSavedFlag] = useState(false);
+
+  const searchParams = useSearchParams();
+  const handledEditRef = useRef(false);
+
+  useEffect(() => {
+    if (handledEditRef.current) return;
+    const editId = searchParams.get("edit");
+    if (!editId || !citas) return;
+    const target = citas.find((c) => c._id === editId);
+    if (!target) return;
+    handledEditRef.current = true;
+    setEditingId(target._id);
+    setForm({
+      date: target.date,
+      doctor: target.doctor ?? "",
+      reason: target.reason ?? "",
+      location: target.location ?? "",
+      next_appointment: target.next_appointment ?? "",
+      notes: target.notes ?? "",
+    });
+    setDateError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [searchParams, citas]);
 
   useEffect(() => {
     if (!savedFlag) return;

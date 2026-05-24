@@ -88,3 +88,89 @@ export const remove = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+const DEFAULTS = {
+  pension: 4299866,
+  compensar: 617200,
+  enel: 252470,
+  gas: 61110,
+  agua: 0,
+  internet: 102000,
+  celular: 55000,
+  alarma: 0,
+  empleada: 1080000,
+  caja: 1200000,
+  mercado: 400000,
+  varios: 0,
+};
+
+const PAID_FIELD = {
+  compensar: "compensar_paid",
+  enel: "enel_paid",
+  gas: "gas_paid",
+  agua: "agua_paid",
+  internet: "internet_paid",
+  celular: "celular_paid",
+  alarma: "alarma_paid",
+} as const;
+
+export const markServicePaid = mutation({
+  args: {
+    patientId: v.id("patients"),
+    updatedBy: v.id("caregivers"),
+    monthKey: v.string(),
+    service: v.union(
+      v.literal("compensar"),
+      v.literal("enel"),
+      v.literal("gas"),
+      v.literal("agua"),
+      v.literal("internet"),
+      v.literal("celular"),
+      v.literal("alarma"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("finance_months")
+      .withIndex("by_patient_month", (q) =>
+        q.eq("patient_id", args.patientId).eq("month_key", args.monthKey),
+      )
+      .first();
+
+    if (existing) {
+      const field = PAID_FIELD[args.service];
+      await ctx.db.patch(existing._id, {
+        [field]: true,
+        updated_by: args.updatedBy,
+        updated_at: Date.now(),
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("finance_months", {
+      patient_id: args.patientId,
+      month_key: args.monthKey,
+      pension: DEFAULTS.pension,
+      compensar: DEFAULTS.compensar,
+      compensar_paid: args.service === "compensar",
+      enel: DEFAULTS.enel,
+      enel_paid: args.service === "enel",
+      gas: DEFAULTS.gas,
+      gas_paid: args.service === "gas",
+      agua: DEFAULTS.agua,
+      agua_paid: args.service === "agua",
+      internet: DEFAULTS.internet,
+      internet_paid: args.service === "internet",
+      celular: DEFAULTS.celular,
+      celular_paid: args.service === "celular",
+      alarma: DEFAULTS.alarma,
+      alarma_paid: args.service === "alarma",
+      empleada: DEFAULTS.empleada,
+      caja: DEFAULTS.caja,
+      mercado: DEFAULTS.mercado,
+      varios: DEFAULTS.varios,
+      updated_by: args.updatedBy,
+      updated_at: Date.now(),
+    });
+  },
+});

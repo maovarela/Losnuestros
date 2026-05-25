@@ -64,6 +64,17 @@ export default defineSchema({
     updated_at: v.number(),
   }).index("by_patient", ["patient_id"]),
 
+  finance_audit: defineTable({
+    patient_id: v.id("patients"),
+    month_key: v.string(),
+    action: v.string(),
+    detail: v.string(),
+    actor_id: v.optional(v.id("caregivers")),
+    actor_name: v.string(),
+    snapshot: v.optional(v.any()),
+    at: v.number(),
+  }).index("by_patient", ["patient_id"]),
+
   finance_months: defineTable({
     patient_id: v.id("patients"),
     month_key: v.string(),

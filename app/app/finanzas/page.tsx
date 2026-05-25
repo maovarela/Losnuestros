@@ -160,6 +160,7 @@ export default function FinanzasPage() {
     monthKey: selectedMonth,
   });
   const history = useQuery(api.financeMonths.listByPatient, { patientId });
+  const audit = useQuery(api.financeMonths.listAuditByPatient, { patientId });
   const upsert = useMutation(api.financeMonths.upsert);
   const remove = useMutation(api.financeMonths.remove);
 
@@ -291,10 +292,10 @@ export default function FinanzasPage() {
 
   async function handleDelete(id: Id<"finance_months">, key: string) {
     const ok = window.confirm(
-      `Vas a borrar el registro de ${monthLabel(key)}. ¿Continuar?`,
+      `Vas a borrar el registro de ${monthLabel(key)}. Quedará en la bitácora con una copia de respaldo. ¿Continuar?`,
     );
     if (!ok) return;
-    await remove({ id });
+    await remove({ id, actorId: caregiverId });
   }
 
   const difClass =
@@ -739,7 +740,99 @@ export default function FinanzasPage() {
           </div>
         </div>
       )}
+
+      {audit && audit.length > 0 && (
+        <div className="mt-6">
+          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
+            Bitácora
+          </div>
+          <div className="rounded-xl border border-border bg-bg">
+            <ul className="divide-y divide-border">
+              {audit.map((row) => (
+                <li key={row._id} className="px-4 py-3 text-sm">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <div className="min-w-0">
+                      <span className="font-medium">{row.actor_name}</span>{" "}
+                      <span className="text-text-2">{row.detail}</span>
+                    </div>
+                    <div className="text-xs text-text-3 tabular-nums">
+                      {monthLabel(row.month_key)} · {relativeTime(row.at)}
+                    </div>
+                  </div>
+                  {row.action === "deleted" && row.snapshot && (
+                    <AuditSnapshot snapshot={row.snapshot} />
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-2 text-xs text-text-2">
+            Registro no modificable de todos los cambios. Si se borra un mes, queda una copia completa en esta bitácora.
+          </div>
+        </div>
+      )}
     </main>
+  );
+}
+
+function AuditSnapshot({ snapshot }: { snapshot: Record<string, unknown> }) {
+  const get = (k: string) => snapshot[k];
+  const num = (k: string) => {
+    const v = get(k);
+    return typeof v === "number" ? v : 0;
+  };
+  const paidList = [
+    ["compensar_paid", "Compensar"],
+    ["enel_paid", "Enel"],
+    ["gas_paid", "Gas"],
+    ["agua_paid", "Agua"],
+    ["internet_paid", "Internet"],
+    ["celular_paid", "Celular"],
+    ["alarma_paid", "Alarma"],
+  ] as const;
+  const pagados = paidList.filter(([k]) => get(k) === true).map(([, l]) => l);
+  const ingreso = num("pension") + num("prima");
+  const gastos =
+    num("compensar") +
+    num("enel") +
+    num("gas") +
+    num("agua") +
+    num("internet") +
+    num("celular") +
+    num("alarma") +
+    num("empleada") +
+    num("caja") +
+    num("mercado") +
+    num("varios");
+  const saldo = get("saldo_banco");
+  const nota = get("nota");
+  return (
+    <div className="mt-2 rounded-md border border-border-2 bg-bg-2 p-3 text-xs text-text-2 space-y-1">
+      <div className="flex justify-between">
+        <span>Ingreso</span>
+        <span className="tabular-nums text-text">{fmtCOP(ingreso)}</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Gastos</span>
+        <span className="tabular-nums text-text">{fmtCOP(gastos)}</span>
+      </div>
+      <div className="flex justify-between">
+        <span>Saldo</span>
+        <span className="tabular-nums text-text">
+          {typeof saldo === "number" ? fmtCOP(saldo) : "Sin dato"}
+        </span>
+      </div>
+      {pagados.length > 0 && (
+        <div className="pt-1">
+          Pagos: <span className="text-text">{pagados.join(", ")}</span>
+        </div>
+      )}
+      {typeof nota === "string" && nota.trim() && (
+        <div className="pt-1">
+          Nota: <span className="text-text">{nota}</span>
+        </div>
+      )}
+    </div>
   );
 }
 

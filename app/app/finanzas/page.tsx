@@ -146,7 +146,7 @@ function digitsOnly(s: string): string {
 }
 
 export default function FinanzasPage() {
-  const { patientId, caregiverId } = useAppContext();
+  const { patientId, caregiverId, patientCaregiver } = useAppContext();
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [form, setForm] = useState<FormState>(emptyForm());
   const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
@@ -188,7 +188,7 @@ export default function FinanzasPage() {
 
     if (monthData === null) {
       setForm(emptyForm());
-      setResponsibleFor(null);
+      setResponsibleFor(patientCaregiver?.id ?? null);
       return;
     }
 

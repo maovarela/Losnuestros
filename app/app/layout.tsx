@@ -27,12 +27,24 @@ export default async function AppLayout({
   if (!patient || !caregiver) redirect("/");
   if (caregiver.role === "patient") redirect("/abuela");
 
-  const allCaregivers = await convex().query(api.caregivers.listByPatient, {
-    patientId: patient._id,
-  });
+  const [allCaregivers, patientCaregiverRecord] = await Promise.all([
+    convex().query(api.caregivers.listByPatient, { patientId: patient._id }),
+    convex().query(api.caregivers.getPatientCaregiver, {
+      patientId: patient._id,
+    }),
+  ]);
   const otherCaregivers = allCaregivers
     .filter((c) => c._id !== caregiver._id)
     .map((c) => ({ id: c._id, name: c.name }));
+  const patientCaregiver = patientCaregiverRecord
+    ? {
+        id: patientCaregiverRecord._id,
+        name: patientCaregiverRecord.name
+          .split(/\s+/)
+          .slice(0, 2)
+          .join(" "),
+      }
+    : null;
 
   return (
     <ConvexClientProvider>
@@ -44,6 +56,7 @@ export default async function AppLayout({
           patientName: patient.name,
           patientInitials: patient.avatar_initials,
           otherCaregivers,
+          patientCaregiver,
         }}
       >
         <DropProvider>

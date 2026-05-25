@@ -7,6 +7,11 @@ export type OtherCaregiver = {
   name: string;
 };
 
+export type PatientCaregiver = {
+  id: Id<"caregivers">;
+  name: string;
+};
+
 export type AppContextValue = {
   caregiverId: Id<"caregivers">;
   caregiverName: string;
@@ -14,6 +19,7 @@ export type AppContextValue = {
   patientName: string;
   patientInitials: string;
   otherCaregivers: OtherCaregiver[];
+  patientCaregiver: PatientCaregiver | null;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);

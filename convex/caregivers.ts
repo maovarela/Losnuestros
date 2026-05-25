@@ -19,6 +19,17 @@ export const listByPatient = query({
   },
 });
 
+export const getPatientCaregiver = query({
+  args: { patientId: v.id("patients") },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query("caregivers")
+      .withIndex("by_patient", (q) => q.eq("patient_id", args.patientId))
+      .collect();
+    return all.find((c) => c.role === "patient") ?? null;
+  },
+});
+
 export const rename = mutation({
   args: { currentName: v.string(), newName: v.string() },
   handler: async (ctx, args) => {

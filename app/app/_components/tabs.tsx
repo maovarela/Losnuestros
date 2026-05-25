@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Icon } from "./icon";
 
-const TABS = [
-  { href: "/app/resumen", label: "Resumen" },
-  { href: "/app/finanzas", label: "Finanzas" },
-  { href: "/app/referencias", label: "Referencias de pago" },
-  { href: "/app/medicamentos", label: "Medicamentos" },
-  { href: "/app/citas", label: "Citas médicas" },
+const ITEMS = [
+  { href: "/app/resumen", label: "Inicio", icon: "home" },
+  { href: "/app/medicamentos", label: "Meds", icon: "medication" },
+  { href: "/app/citas", label: "Citas", icon: "event" },
+  { href: "/app/finanzas", label: "Finanzas", icon: "payments" },
+  { href: "/app/referencias", label: "Pagos", icon: "receipt_long" },
 ];
 
 export function Tabs() {
@@ -16,27 +17,35 @@ export function Tabs() {
   return (
     <nav
       aria-label="Secciones"
-      className="-mx-4 mt-5 mb-5 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-bg"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex w-max gap-1 px-4">
-        {TABS.map((t) => {
-          const active = pathname === t.href || pathname.startsWith(t.href + "/");
+      <ul className="mx-auto flex max-w-[720px] items-center justify-around px-2 py-1.5">
+        {ITEMS.map((t) => {
+          const active =
+            pathname === t.href || pathname.startsWith(t.href + "/");
           return (
-            <Link
-              key={t.href}
-              href={t.href}
-              aria-current={active ? "page" : undefined}
-              className={`-mb-px shrink-0 whitespace-nowrap rounded-t-md px-3.5 py-2.5 text-sm font-medium transition-colors ${
-                active
-                  ? "border-b-2 border-text text-text"
-                  : "border-b-2 border-transparent text-text-2 hover:bg-bg-2 active:bg-bg-2"
-              }`}
-            >
-              {t.label}
-            </Link>
+            <li key={t.href} className="min-w-0 flex-1">
+              <Link
+                href={t.href}
+                aria-current={active ? "page" : undefined}
+                className={`mx-auto flex w-full min-h-12 max-w-[80px] flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium leading-tight transition-colors ${
+                  active
+                    ? "bg-green-bg text-green"
+                    : "text-text-2 active:bg-bg-2"
+                }`}
+              >
+                <Icon
+                  name={t.icon}
+                  filled={active}
+                  className="text-2xl"
+                />
+                <span className="truncate">{t.label}</span>
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 }

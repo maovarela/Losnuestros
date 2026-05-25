@@ -7,6 +7,7 @@ import { ConvexClientProvider } from "@/lib/convex-client";
 import { DropProvider } from "@/lib/drop-context";
 import { getSession } from "@/lib/session-server";
 import { DragDropOverlay } from "./_components/drag-drop-overlay";
+import { Fab } from "./_components/fab";
 import { Tabs } from "./_components/tabs";
 
 export default async function AppLayout({
@@ -60,7 +61,12 @@ export default async function AppLayout({
         }}
       >
         <DropProvider>
-          <div className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-12">
+          <div
+            className="mx-auto w-full max-w-[720px] px-4 pt-6"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom) + 96px)",
+            }}
+          >
             <header className="flex items-center gap-4 rounded-xl border border-border bg-bg-2 px-6 py-5">
               <div
                 aria-hidden="true"
@@ -76,9 +82,10 @@ export default async function AppLayout({
                 </div>
               </div>
             </header>
-            <Tabs />
-            {children}
+            <div className="mt-5">{children}</div>
           </div>
+          <Fab href="/app/ingestar" icon="add_a_photo" ariaLabel="Cargar foto o mensaje" />
+          <Tabs />
           <DragDropOverlay />
         </DropProvider>
       </AppProvider>

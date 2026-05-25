@@ -401,17 +401,19 @@ export default function FinanzasPage() {
         </div>
 
         {totals.hasFinal && (
-          <div className="mt-3 rounded-lg bg-bg-2 p-4">
-            <div className="text-xs text-text-2">Saldo en el banco hoy</div>
+          <div className="glass-card mt-3 rounded-2xl p-6">
+            <div className="text-sm font-medium text-text-2">
+              Saldo en el banco hoy
+            </div>
             <div
-              className={`mt-1 text-3xl font-medium tabular-nums ${
+              className={`mt-2 text-5xl font-bold tabular-nums leading-tight ${
                 totals.hasInicial ? difClass : "text-text"
               }`}
             >
               {fmtCOP(totals.final)}
             </div>
             {totals.hasInicial && (
-              <div className={`mt-1 text-xs ${difClass}`}>
+              <div className={`mt-2 text-sm ${difClass}`}>
                 {Math.abs(totals.dif) < 10000
                   ? "Cuadra con lo registrado"
                   : totals.dif < 0

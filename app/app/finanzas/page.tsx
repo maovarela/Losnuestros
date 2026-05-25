@@ -472,8 +472,12 @@ export default function FinanzasPage() {
             placeholder="0"
           />
         </div>
+      </div>
 
-        <SectionLabel className="mt-5">Servicios públicos</SectionLabel>
+      <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+        <SectionLabel>Egresos</SectionLabel>
+
+        <SectionLabel className="mt-4">Servicios públicos</SectionLabel>
         <div className="mt-2 space-y-3">
           <MoneyPaidRow
             label="Compensar salud"
@@ -550,8 +554,10 @@ export default function FinanzasPage() {
             placeholder="0"
           />
         </div>
+      </div>
 
-        <div className="mt-5 rounded-lg border border-border-2 p-3">
+      <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+        <div className="rounded-lg border border-border-2 p-3">
           <div className="text-sm font-medium">Saldo en el banco</div>
           <p className="mt-1 text-xs text-text-2">
             Escribe lo que hay en la cuenta hoy (o al cerrar el mes). La app

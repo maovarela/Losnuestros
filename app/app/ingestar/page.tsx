@@ -264,7 +264,7 @@ export default function IngestarPage() {
           <button
             onClick={handleAnalyze}
             disabled={analyzing || (!text.trim() && !file)}
-            className="min-h-11 rounded-md bg-text px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+            className="min-h-11 rounded-md bg-blue px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
           >
             {analyzing ? "Analizando..." : "Analizar"}
           </button>
@@ -374,7 +374,7 @@ function ProposalCard({
         <button
           onClick={onSave}
           disabled={saving}
-          className="min-h-9 rounded-md bg-text px-4 py-1.5 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+          className="min-h-9 rounded-md bg-blue px-4 py-1.5 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
         >
           {saving ? "Guardando..." : "Guardar este"}
         </button>

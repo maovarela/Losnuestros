@@ -16,7 +16,7 @@ export function Fab({ href, icon = "add", ariaLabel }: Props) {
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="fixed right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-blue text-white shadow-lg active:scale-95 hover:opacity-90 transition-transform"
+      className="fixed right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-blue text-bg shadow-lg active:scale-95 hover:opacity-90 transition-transform"
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 88px)" }}
     >
       <Icon name={icon} className="text-3xl" />

@@ -540,7 +540,7 @@ export default function FinanzasPage() {
                       handleSettle(b.caregiverId, b.name, b.amount)
                     }
                     disabled={settling === b.caregiverId}
-                    className="min-h-9 rounded-md bg-text px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+                    className="min-h-9 rounded-md bg-blue px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
                   >
                     {settling === b.caregiverId ? "Registrando..." : "Le devolví todo"}
                   </button>
@@ -719,7 +719,7 @@ export default function FinanzasPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="min-h-11 rounded-md bg-text px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+            className="min-h-11 rounded-md bg-blue px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
           >
             {saving ? "Guardando..." : "Guardar mes"}
           </button>

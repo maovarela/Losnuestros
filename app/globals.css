@@ -22,6 +22,9 @@
   --blue-bg: #cde5ff;
   --blue: #074469;
   --blue-border: rgba(7, 68, 105, 0.35);
+  --purple-bg: #e8deff;
+  --purple: #463677;
+  --purple-border: rgba(70, 54, 119, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -47,6 +50,9 @@
     --blue-bg: #001d32;
     --blue: #9ccbf7;
     --blue-border: rgba(156, 203, 247, 0.35);
+    --purple-bg: #1f0c50;
+    --purple: #cdbdff;
+    --purple-border: rgba(205, 189, 255, 0.35);
   }
 }
 
@@ -72,6 +78,9 @@
   --color-blue: var(--blue);
   --color-blue-bg: var(--blue-bg);
   --color-blue-border: var(--blue-border);
+  --color-purple: var(--purple);
+  --color-purple-bg: var(--purple-bg);
+  --color-purple-border: var(--purple-border);
 
   --font-sans: var(--font-atkinson), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "SF Mono", "Fira Code", ui-monospace, monospace;

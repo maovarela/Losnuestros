@@ -1,6 +1,12 @@
 import { Icon } from "./icon";
 
-type Variant = "success" | "warn" | "danger" | "info" | "neutral";
+type Variant =
+  | "success"
+  | "warn"
+  | "danger"
+  | "info"
+  | "tertiary"
+  | "neutral";
 
 type Props = {
   children: React.ReactNode;
@@ -14,6 +20,7 @@ const STYLES: Record<Variant, string> = {
   warn: "bg-amber-bg text-amber",
   danger: "bg-red-bg text-red",
   info: "bg-blue-bg text-blue",
+  tertiary: "bg-purple-bg text-purple",
   neutral: "bg-bg-2 text-text-2",
 };
 

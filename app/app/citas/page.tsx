@@ -175,18 +175,18 @@ export default function CitasPage() {
   return (
     <main>
       {proxima && (
-        <div className="flex items-start gap-3 rounded-xl border-l-4 border-green bg-green-bg p-4">
+        <div className="flex items-start gap-3 rounded-xl border-l-4 border-purple bg-purple-bg p-4">
           <Icon
             name="event"
             filled
-            className="shrink-0 text-2xl text-green"
+            className="shrink-0 text-2xl text-purple"
           />
-          <div className="min-w-0 flex-1 text-green">
+          <div className="min-w-0 flex-1 text-purple">
             <div className="flex items-center justify-between gap-2">
               <div className="text-xs font-bold uppercase tracking-wider">
                 Próxima cita
               </div>
-              <Pill variant="success">
+              <Pill variant="tertiary">
                 {(() => {
                   const d = daysUntil(proxima.date);
                   return d === 0
@@ -326,9 +326,9 @@ export default function CitasPage() {
               const showAttribution = !!c.updated_by;
               const badge = isFuture
                 ? d === 0
-                  ? { text: "Hoy", variant: "success" as const }
+                  ? { text: "Hoy", variant: "tertiary" as const }
                   : d === 1
-                    ? { text: "Mañana", variant: "success" as const }
+                    ? { text: "Mañana", variant: "tertiary" as const }
                     : d <= 7
                       ? {
                           text: `En ${d} días`,
@@ -336,18 +336,18 @@ export default function CitasPage() {
                         }
                       : {
                           text: `En ${d} días`,
-                          variant: "info" as const,
+                          variant: "tertiary" as const,
                         }
                 : null;
               return (
                 <div
                   key={c._id}
-                  className="rounded-xl border border-l-4 border-border border-l-green bg-bg p-4"
+                  className="rounded-xl border border-l-4 border-border border-l-purple bg-bg p-4"
                 >
                   <div className="flex items-start gap-3">
                     <div
                       aria-hidden="true"
-                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-green-bg text-green"
+                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-purple-bg text-purple"
                     >
                       <Icon name="event" filled className="text-3xl" />
                     </div>

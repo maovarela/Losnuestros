@@ -183,13 +183,13 @@ export default function ResumenPage() {
       const today = new Date().getDate();
       const paidMap: Partial<Record<ServiceKey, boolean>> = finance
         ? {
-            compensar: finance.compensar_paid,
-            enel: finance.enel_paid,
-            gas: finance.gas_paid,
-            agua: finance.agua_paid,
-            internet: finance.internet_paid,
-            celular: finance.celular_paid,
-            alarma: finance.alarma_paid,
+            compensar: finance.compensar_paid_by != null,
+            enel: finance.enel_paid_by != null,
+            gas: finance.gas_paid_by != null,
+            agua: finance.agua_paid_by != null,
+            internet: finance.internet_paid_by != null,
+            celular: finance.celular_paid_by != null,
+            alarma: finance.alarma_paid_by != null,
           }
         : {};
 

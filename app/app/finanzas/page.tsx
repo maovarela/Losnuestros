@@ -4,7 +4,6 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
-import { WhoDidIt } from "../_components/who-did-it";
 
 const MESES = [
   "Enero",
@@ -32,6 +31,17 @@ const DEFAULTS = {
   internet: 102000,
   celular: 55000,
 };
+
+const SERVICE_KEYS = [
+  "compensar",
+  "enel",
+  "gas",
+  "agua",
+  "internet",
+  "celular",
+  "alarma",
+] as const;
+type ServiceKey = (typeof SERVICE_KEYS)[number];
 
 const rtf = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 
@@ -77,23 +87,25 @@ function monthKeysRange(): string[] {
   return out;
 }
 
+type PayerId = Id<"caregivers"> | null;
+
 type FormState = {
   pension: string;
   prima: string;
   compensar: string;
-  compensar_paid: boolean;
+  compensar_paid_by: PayerId;
   enel: string;
-  enel_paid: boolean;
+  enel_paid_by: PayerId;
   gas: string;
-  gas_paid: boolean;
+  gas_paid_by: PayerId;
   agua: string;
-  agua_paid: boolean;
+  agua_paid_by: PayerId;
   internet: string;
-  internet_paid: boolean;
+  internet_paid_by: PayerId;
   celular: string;
-  celular_paid: boolean;
+  celular_paid_by: PayerId;
   alarma: string;
-  alarma_paid: boolean;
+  alarma_paid_by: PayerId;
   empleada: string;
   caja: string;
   mercado: string;
@@ -107,19 +119,19 @@ function emptyForm(): FormState {
     pension: String(DEFAULTS.pension),
     prima: "",
     compensar: String(DEFAULTS.compensar),
-    compensar_paid: false,
+    compensar_paid_by: null,
     enel: String(DEFAULTS.enel),
-    enel_paid: false,
+    enel_paid_by: null,
     gas: String(DEFAULTS.gas),
-    gas_paid: false,
+    gas_paid_by: null,
     agua: "",
-    agua_paid: false,
+    agua_paid_by: null,
     internet: String(DEFAULTS.internet),
-    internet_paid: false,
+    internet_paid_by: null,
     celular: String(DEFAULTS.celular),
-    celular_paid: false,
+    celular_paid_by: null,
     alarma: "",
-    alarma_paid: false,
+    alarma_paid_by: null,
     empleada: String(DEFAULTS.empleada),
     caja: String(DEFAULTS.caja),
     mercado: String(DEFAULTS.mercado),
@@ -146,14 +158,13 @@ function digitsOnly(s: string): string {
 }
 
 export default function FinanzasPage() {
-  const { patientId, caregiverId, patientCaregiver } = useAppContext();
+  const { patientId, caregiverId, caregiverName, otherCaregivers, patientCaregiver } =
+    useAppContext();
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [form, setForm] = useState<FormState>(emptyForm());
-  const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
-    null,
-  );
   const [saving, setSaving] = useState(false);
   const [savedFlag, setSavedFlag] = useState(false);
+  const [settling, setSettling] = useState<Id<"caregivers"> | null>(null);
 
   const monthData = useQuery(api.financeMonths.getByMonth, {
     patientId,
@@ -161,8 +172,13 @@ export default function FinanzasPage() {
   });
   const history = useQuery(api.financeMonths.listByPatient, { patientId });
   const audit = useQuery(api.financeMonths.listAuditByPatient, { patientId });
+  const balances = useQuery(api.financeMonths.getBalances, { patientId });
+  const settlements = useQuery(api.financeMonths.listSettlements, {
+    patientId,
+  });
   const upsert = useMutation(api.financeMonths.upsert);
   const remove = useMutation(api.financeMonths.remove);
+  const settle = useMutation(api.financeMonths.settle);
 
   useEffect(() => {
     if (!savedFlag) return;
@@ -188,28 +204,26 @@ export default function FinanzasPage() {
 
     if (monthData === null) {
       setForm(emptyForm());
-      setResponsibleFor(patientCaregiver?.id ?? null);
       return;
     }
 
-    setResponsibleFor(monthData.responsible_for ?? null);
     setForm({
       pension: String(monthData.pension),
       prima: monthData.prima ? String(monthData.prima) : "",
       compensar: String(monthData.compensar),
-      compensar_paid: monthData.compensar_paid,
+      compensar_paid_by: monthData.compensar_paid_by ?? null,
       enel: String(monthData.enel),
-      enel_paid: monthData.enel_paid,
+      enel_paid_by: monthData.enel_paid_by ?? null,
       gas: String(monthData.gas),
-      gas_paid: monthData.gas_paid,
+      gas_paid_by: monthData.gas_paid_by ?? null,
       agua: monthData.agua ? String(monthData.agua) : "",
-      agua_paid: monthData.agua_paid,
+      agua_paid_by: monthData.agua_paid_by ?? null,
       internet: String(monthData.internet),
-      internet_paid: monthData.internet_paid,
+      internet_paid_by: monthData.internet_paid_by ?? null,
       celular: String(monthData.celular),
-      celular_paid: monthData.celular_paid,
+      celular_paid_by: monthData.celular_paid_by ?? null,
       alarma: monthData.alarma ? String(monthData.alarma) : "",
-      alarma_paid: monthData.alarma_paid,
+      alarma_paid_by: monthData.alarma_paid_by ?? null,
       empleada: String(monthData.empleada),
       caja: String(monthData.caja),
       mercado: String(monthData.mercado),
@@ -221,29 +235,38 @@ export default function FinanzasPage() {
 
   const totals = useMemo(() => {
     const ingreso = num(form.pension) + num(form.prima);
-    const gastos =
-      num(form.compensar) +
-      num(form.enel) +
-      num(form.gas) +
-      num(form.agua) +
-      num(form.internet) +
-      num(form.celular) +
-      num(form.alarma) +
-      num(form.empleada) +
-      num(form.caja) +
-      num(form.mercado) +
-      num(form.varios);
-    const movimiento_esperado = ingreso - gastos;
+    const otrosGastos =
+      num(form.empleada) + num(form.caja) + num(form.mercado) + num(form.varios);
+    let serviciosTotal = 0;
+    let serviciosOtros = 0;
+    for (const k of SERVICE_KEYS) {
+      const amount = num(form[k]);
+      serviciosTotal += amount;
+      const payer = form[`${k}_paid_by`] as PayerId;
+      if (payer && payer !== patientCaregiver?.id) {
+        serviciosOtros += amount;
+      }
+    }
+    const gastosTotales = serviciosTotal + otrosGastos;
+    const gastosDeAna = gastosTotales - serviciosOtros;
+
+    const settlementsEsteMes =
+      settlements
+        ?.filter((s) => s.month_key === selectedMonth)
+        .reduce((acc, s) => acc + s.amount, 0) ?? 0;
+
     const inicial = previousMonthSaldo ?? 0;
     const final = num(form.saldo_banco);
     const hasInicial = previousMonthSaldo !== undefined;
     const hasFinal = form.saldo_banco.trim() !== "";
-    const esperado_final = inicial + movimiento_esperado;
+    const esperado_final = inicial + ingreso - gastosDeAna - settlementsEsteMes;
     const dif = hasInicial && hasFinal ? final - esperado_final : 0;
     return {
       ingreso,
-      gastos,
-      movimiento_esperado,
+      gastosTotales,
+      gastosDeAna,
+      serviciosOtros,
+      settlementsEsteMes,
       inicial,
       final,
       esperado_final,
@@ -251,7 +274,7 @@ export default function FinanzasPage() {
       hasInicial,
       hasFinal,
     };
-  }, [form, previousMonthSaldo]);
+  }, [form, previousMonthSaldo, patientCaregiver, settlements, selectedMonth]);
 
   async function handleSave() {
     setSaving(true);
@@ -259,24 +282,23 @@ export default function FinanzasPage() {
       await upsert({
         patientId,
         updatedBy: caregiverId,
-        responsibleFor: responsibleFor ?? undefined,
         month_key: selectedMonth,
         pension: num(form.pension),
         prima: form.prima ? num(form.prima) : undefined,
         compensar: num(form.compensar),
-        compensar_paid: form.compensar_paid,
+        compensar_paid_by: form.compensar_paid_by ?? undefined,
         enel: num(form.enel),
-        enel_paid: form.enel_paid,
+        enel_paid_by: form.enel_paid_by ?? undefined,
         gas: num(form.gas),
-        gas_paid: form.gas_paid,
+        gas_paid_by: form.gas_paid_by ?? undefined,
         agua: num(form.agua),
-        agua_paid: form.agua_paid,
+        agua_paid_by: form.agua_paid_by ?? undefined,
         internet: num(form.internet),
-        internet_paid: form.internet_paid,
+        internet_paid_by: form.internet_paid_by ?? undefined,
         celular: num(form.celular),
-        celular_paid: form.celular_paid,
+        celular_paid_by: form.celular_paid_by ?? undefined,
         alarma: num(form.alarma),
-        alarma_paid: form.alarma_paid,
+        alarma_paid_by: form.alarma_paid_by ?? undefined,
         empleada: num(form.empleada),
         caja: num(form.caja),
         mercado: num(form.mercado),
@@ -298,18 +320,44 @@ export default function FinanzasPage() {
     await remove({ id, actorId: caregiverId });
   }
 
+  async function handleSettle(
+    toId: Id<"caregivers">,
+    name: string,
+    amount: number,
+  ) {
+    const ok = window.confirm(
+      `Vas a registrar que Ana María le devolvió ${fmtCOP(amount)} a ${name}. Esto baja el saldo del banco y cierra la deuda. ¿Continuar?`,
+    );
+    if (!ok) return;
+    setSettling(toId);
+    try {
+      await settle({
+        patientId,
+        toId,
+        amount,
+        monthKey: selectedMonth,
+        actorId: caregiverId,
+      });
+    } finally {
+      setSettling(null);
+    }
+  }
+
   const difClass =
     Math.abs(totals.dif) < 10000
       ? "text-green"
       : totals.dif < 0
         ? "text-red"
         : "text-amber";
-  const difLabel =
-    Math.abs(totals.dif) < 10000
-      ? "Cuadra"
-      : totals.dif > 0
-        ? "Hay más en el banco de lo esperado"
-        : "Faltan pesos en el banco frente a lo calculado";
+
+  const payerOptions: { id: PayerId; label: string }[] = [
+    { id: null, label: "No pagado" },
+    ...(patientCaregiver
+      ? [{ id: patientCaregiver.id as PayerId, label: patientCaregiver.name }]
+      : []),
+    { id: caregiverId as PayerId, label: `Yo (${caregiverName})` },
+    ...otherCaregivers.map((c) => ({ id: c.id as PayerId, label: c.name })),
+  ];
 
   return (
     <main>
@@ -399,10 +447,24 @@ export default function FinanzasPage() {
                 valueClass="text-green"
               />
               <StatementRow
-                label="− Gastos del mes"
-                value={`−${fmtCOP(totals.gastos)}`}
+                label="− Gastos pagados por Ana María"
+                value={`−${fmtCOP(totals.gastosDeAna)}`}
                 valueClass="text-red"
               />
+              {totals.serviciosOtros > 0 && (
+                <StatementRow
+                  label={`(${fmtCOP(totals.serviciosOtros)} los pagó alguien más, queda en cuentas pendientes)`}
+                  value=""
+                  muted
+                />
+              )}
+              {totals.settlementsEsteMes > 0 && (
+                <StatementRow
+                  label="− Devoluciones del mes"
+                  value={`−${fmtCOP(totals.settlementsEsteMes)}`}
+                  valueClass="text-red"
+                />
+              )}
               <div className="border-t border-border pt-1.5">
                 <StatementRow
                   label="Saldo esperado"
@@ -439,24 +501,52 @@ export default function FinanzasPage() {
         )}
         {monthData && monthData.updated_at && (
           <div className="mt-3 border-t border-border pt-2 text-xs text-text-2">
-            {monthData.responsible_for_name &&
-            monthData.responsible_for !== monthData.updated_by ? (
-              <>
-                Lo registró {monthData.updated_by_name ?? "alguien"} · lo pagó{" "}
-                <span className="font-medium text-text">
-                  {monthData.responsible_for_name}
-                </span>{" "}
-                {relativeTime(monthData.updated_at)}
-              </>
-            ) : (
-              <>
-                Actualizado por {monthData.updated_by_name ?? "alguien"}{" "}
-                {relativeTime(monthData.updated_at)}
-              </>
-            )}
+            Actualizado por {monthData.updated_by_name ?? "alguien"}{" "}
+            {relativeTime(monthData.updated_at)}
           </div>
         )}
       </div>
+
+      {balances && balances.some((b) => b.amount > 0) && (
+        <div className="mt-4 rounded-xl border border-amber-border bg-amber-bg p-4">
+          <div className="text-xs font-medium uppercase tracking-wider text-amber">
+            Cuentas pendientes
+          </div>
+          <p className="mt-1 text-xs text-text-2">
+            Plata que pagaron Ingrid o Sandra de su bolsillo. Ana María se las
+            debe hasta que les devuelva.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {balances
+              .filter((b) => b.amount > 0)
+              .map((b) => (
+                <li
+                  key={b.caregiverId}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border-2 bg-bg p-3"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm">
+                      Ana María le debe a{" "}
+                      <span className="font-medium">{b.name}</span>
+                    </div>
+                    <div className="text-base font-medium tabular-nums">
+                      {fmtCOP(b.amount)}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() =>
+                      handleSettle(b.caregiverId, b.name, b.amount)
+                    }
+                    disabled={settling === b.caregiverId}
+                    className="min-h-9 rounded-md bg-text px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+                  >
+                    {settling === b.caregiverId ? "Registrando..." : "Le devolví todo"}
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-6 rounded-xl border border-border bg-bg p-4">
         <SectionLabel>Ingresos</SectionLabel>
@@ -480,54 +570,61 @@ export default function FinanzasPage() {
 
         <SectionLabel className="mt-4">Servicios públicos</SectionLabel>
         <div className="mt-2 space-y-3">
-          <MoneyPaidRow
+          <PayerRow
             label="Compensar salud"
             value={form.compensar}
-            paid={form.compensar_paid}
+            paidBy={form.compensar_paid_by}
             onChange={(v) => setForm({ ...form, compensar: v })}
-            onPaid={(p) => setForm({ ...form, compensar_paid: p })}
+            onPaidBy={(p) => setForm({ ...form, compensar_paid_by: p })}
+            options={payerOptions}
           />
-          <MoneyPaidRow
+          <PayerRow
             label="Energía Enel"
             value={form.enel}
-            paid={form.enel_paid}
+            paidBy={form.enel_paid_by}
             onChange={(v) => setForm({ ...form, enel: v })}
-            onPaid={(p) => setForm({ ...form, enel_paid: p })}
+            onPaidBy={(p) => setForm({ ...form, enel_paid_by: p })}
+            options={payerOptions}
           />
-          <MoneyPaidRow
+          <PayerRow
             label="Gas Vanti"
             value={form.gas}
-            paid={form.gas_paid}
+            paidBy={form.gas_paid_by}
             onChange={(v) => setForm({ ...form, gas: v })}
-            onPaid={(p) => setForm({ ...form, gas_paid: p })}
+            onPaidBy={(p) => setForm({ ...form, gas_paid_by: p })}
+            options={payerOptions}
           />
-          <MoneyPaidRow
+          <PayerRow
             label="Acueducto EAAB"
             value={form.agua}
-            paid={form.agua_paid}
+            paidBy={form.agua_paid_by}
             onChange={(v) => setForm({ ...form, agua: v })}
-            onPaid={(p) => setForm({ ...form, agua_paid: p })}
+            onPaidBy={(p) => setForm({ ...form, agua_paid_by: p })}
+            options={payerOptions}
           />
-          <MoneyPaidRow
+          <PayerRow
             label="Claro internet"
             value={form.internet}
-            paid={form.internet_paid}
+            paidBy={form.internet_paid_by}
             onChange={(v) => setForm({ ...form, internet: v })}
-            onPaid={(p) => setForm({ ...form, internet_paid: p })}
+            onPaidBy={(p) => setForm({ ...form, internet_paid_by: p })}
+            options={payerOptions}
           />
-          <MoneyPaidRow
+          <PayerRow
             label="Claro celular"
             value={form.celular}
-            paid={form.celular_paid}
+            paidBy={form.celular_paid_by}
             onChange={(v) => setForm({ ...form, celular: v })}
-            onPaid={(p) => setForm({ ...form, celular_paid: p })}
+            onPaidBy={(p) => setForm({ ...form, celular_paid_by: p })}
+            options={payerOptions}
           />
-          <MoneyPaidRow
-            label="Alarma (la paga la hermana)"
+          <PayerRow
+            label="Alarma"
             value={form.alarma}
-            paid={form.alarma_paid}
+            paidBy={form.alarma_paid_by}
             onChange={(v) => setForm({ ...form, alarma: v })}
-            onPaid={(p) => setForm({ ...form, alarma_paid: p })}
+            onPaidBy={(p) => setForm({ ...form, alarma_paid_by: p })}
+            options={payerOptions}
           />
         </div>
 
@@ -613,14 +710,6 @@ export default function FinanzasPage() {
           />
         </div>
 
-        <div className="mt-4">
-          <WhoDidIt
-            value={responsibleFor}
-            onChange={setResponsibleFor}
-            label="¿Quién pagó este mes?"
-          />
-        </div>
-
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
           {savedFlag && (
             <div className="mr-auto text-xs text-green">Cambios guardados</div>
@@ -655,18 +744,23 @@ export default function FinanzasPage() {
               <tbody>
                 {history.map((m) => {
                   const ingreso = m.pension + (m.prima ?? 0);
-                  const gastos =
-                    m.compensar +
-                    m.enel +
-                    m.gas +
-                    m.agua +
-                    m.internet +
-                    m.celular +
-                    m.alarma +
-                    m.empleada +
-                    m.caja +
-                    m.mercado +
-                    m.varios;
+                  const servicios =
+                    m.compensar + m.enel + m.gas + m.agua + m.internet + m.celular + m.alarma;
+                  const otros = m.empleada + m.caja + m.mercado + m.varios;
+                  let externos = 0;
+                  for (const k of SERVICE_KEYS) {
+                    const payer = (m as unknown as Record<string, unknown>)[
+                      `${k}_paid_by`
+                    ] as Id<"caregivers"> | undefined;
+                    if (payer && payer !== patientCaregiver?.id) {
+                      externos += (m as unknown as Record<string, number>)[k];
+                    }
+                  }
+                  const gastosAna = servicios + otros - externos;
+                  const sumSettlements =
+                    settlements
+                      ?.filter((s) => s.month_key === m.month_key)
+                      .reduce((acc, s) => acc + s.amount, 0) ?? 0;
                   const prevSaldo = history
                     .filter(
                       (x) =>
@@ -679,7 +773,7 @@ export default function FinanzasPage() {
                   const hasSaldo = saldo !== undefined;
                   const dif =
                     hasPrev && hasSaldo
-                      ? saldo - (prevSaldo + ingreso - gastos)
+                      ? saldo - (prevSaldo + ingreso - gastosAna - sumSettlements)
                       : 0;
                   const difCls =
                     !hasPrev || !hasSaldo
@@ -700,10 +794,7 @@ export default function FinanzasPage() {
                         </button>
                         {m.updated_by_name && (
                           <div className="text-xs font-normal text-text-2">
-                            {m.responsible_for_name &&
-                            m.responsible_for !== m.updated_by
-                              ? `${m.updated_by_name} · lo pagó ${m.responsible_for_name}`
-                              : m.updated_by_name}
+                            {m.updated_by_name}
                           </div>
                         )}
                       </td>
@@ -711,7 +802,7 @@ export default function FinanzasPage() {
                         {fmtCOP(ingreso)}
                       </td>
                       <td className="px-3 py-2 text-right text-red">
-                        {fmtCOP(gastos)}
+                        {fmtCOP(gastosAna)}
                       </td>
                       <td className="px-3 py-2 text-right">
                         {hasSaldo ? fmtCOP(saldo) : "Sin dato"}
@@ -736,7 +827,9 @@ export default function FinanzasPage() {
             </table>
           </div>
           <div className="mt-2 text-xs text-text-2">
-            La diferencia compara el saldo registrado contra lo esperado (saldo del mes pasado + pensión − gastos). Pasa de verde a amarillo o rojo si supera $10.000.
+            La columna Gastos solo cuenta lo que pagó Ana María. Lo que pagaron
+            otros queda en cuentas pendientes y descuenta saldo solo cuando se
+            les devuelve.
           </div>
         </div>
       )}
@@ -777,33 +870,39 @@ export default function FinanzasPage() {
 
 function AuditSnapshot({ snapshot }: { snapshot: Record<string, unknown> }) {
   const get = (k: string) => snapshot[k];
-  const num = (k: string) => {
+  const numField = (k: string) => {
     const v = get(k);
     return typeof v === "number" ? v : 0;
   };
-  const paidList = [
-    ["compensar_paid", "Compensar"],
-    ["enel_paid", "Enel"],
-    ["gas_paid", "Gas"],
-    ["agua_paid", "Agua"],
-    ["internet_paid", "Internet"],
-    ["celular_paid", "Celular"],
-    ["alarma_paid", "Alarma"],
-  ] as const;
-  const pagados = paidList.filter(([k]) => get(k) === true).map(([, l]) => l);
-  const ingreso = num("pension") + num("prima");
+  const paidList: Array<[string, string]> = [
+    ["compensar", "Compensar"],
+    ["enel", "Enel"],
+    ["gas", "Gas"],
+    ["agua", "Agua"],
+    ["internet", "Internet"],
+    ["celular", "Celular"],
+    ["alarma", "Alarma"],
+  ];
+  const pagados = paidList
+    .filter(([k]) => {
+      const newField = get(`${k}_paid_by`);
+      if (newField !== undefined && newField !== null) return true;
+      return get(`${k}_paid`) === true;
+    })
+    .map(([, l]) => l);
+  const ingreso = numField("pension") + numField("prima");
   const gastos =
-    num("compensar") +
-    num("enel") +
-    num("gas") +
-    num("agua") +
-    num("internet") +
-    num("celular") +
-    num("alarma") +
-    num("empleada") +
-    num("caja") +
-    num("mercado") +
-    num("varios");
+    numField("compensar") +
+    numField("enel") +
+    numField("gas") +
+    numField("agua") +
+    numField("internet") +
+    numField("celular") +
+    numField("alarma") +
+    numField("empleada") +
+    numField("caja") +
+    numField("mercado") +
+    numField("varios");
   const saldo = get("saldo_banco");
   const nota = get("nota");
   return (
@@ -883,23 +982,25 @@ function MoneyRow({
   );
 }
 
-function MoneyPaidRow({
+function PayerRow({
   label,
   value,
-  paid,
+  paidBy,
   onChange,
-  onPaid,
+  onPaidBy,
+  options,
 }: {
   label: string;
   value: string;
-  paid: boolean;
+  paidBy: PayerId;
   onChange: (v: string) => void;
-  onPaid: (p: boolean) => void;
+  onPaidBy: (p: PayerId) => void;
+  options: { id: PayerId; label: string }[];
 }) {
   return (
     <div className="border-b border-border pb-3 last:border-0">
-      <div className="text-sm text-text-2">{label}</div>
-      <div className="mt-2 flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm text-text-2">{label}</div>
         <div className="relative flex items-center">
           <span className="pointer-events-none absolute left-3 text-sm text-text-2">
             $
@@ -913,15 +1014,25 @@ function MoneyPaidRow({
             className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           />
         </div>
-        <label className="flex min-h-11 items-center gap-2 text-sm text-text-2">
-          <input
-            type="checkbox"
-            checked={paid}
-            onChange={(e) => onPaid(e.target.checked)}
-            className="h-5 w-5"
-          />
-          Pagado
-        </label>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {options.map((o) => {
+          const active = paidBy === o.id;
+          return (
+            <button
+              key={String(o.id ?? "none")}
+              type="button"
+              onClick={() => onPaidBy(o.id)}
+              className={`min-h-8 rounded-md border px-2.5 py-1 text-xs font-medium active:opacity-80 ${
+                active
+                  ? "border-text bg-text text-bg"
+                  : "border-border-2 bg-bg text-text hover:bg-bg-2"
+              }`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

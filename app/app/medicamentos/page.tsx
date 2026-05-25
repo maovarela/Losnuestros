@@ -5,6 +5,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
+import { Icon } from "../_components/icon";
+import { Pill } from "../_components/pill";
 import { WhoDidIt } from "../_components/who-did-it";
 
 type FormState = {
@@ -186,16 +188,19 @@ export default function MedicamentosPage() {
           {alerts.vencidos.map((m) => (
             <div
               key={m._id}
-              className="flex items-start justify-between gap-3 rounded-lg border border-red-border bg-red-bg px-3 py-2 text-sm text-red"
+              className="flex items-center gap-3 rounded-xl border-l-4 border-red bg-red-bg px-4 py-3 text-sm text-red"
             >
+              <Icon name="error" filled className="shrink-0 text-2xl" />
               <div className="min-w-0 flex-1">
-                Refill vencido. <strong>{m.name}</strong> debía hacerse el{" "}
-                {fmtDate(m.next_refill!)}.
+                <div className="font-bold">{m.name}: refill vencido</div>
+                <div className="text-xs opacity-80">
+                  Debía hacerse el {fmtDate(m.next_refill!)}
+                </div>
               </div>
               <button
                 onClick={() => handleMarkRefilled(m._id)}
                 disabled={refilling === m._id}
-                className="min-h-9 shrink-0 rounded-md border border-red bg-red px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+                className="min-h-9 shrink-0 rounded-md bg-red px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
               >
                 {refilling === m._id ? "..." : "Hice el refill"}
               </button>
@@ -217,16 +222,19 @@ export default function MedicamentosPage() {
             return (
               <div
                 key={m._id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-amber-border bg-amber-bg px-3 py-2 text-sm text-amber"
+                className="flex items-center gap-3 rounded-xl border-l-4 border-amber bg-amber-bg px-4 py-3 text-sm text-amber"
               >
+                <Icon name="schedule" className="shrink-0 text-2xl" />
                 <div className="min-w-0 flex-1">
-                  Refill próximo. <strong>{m.name}</strong>, {cuando} (
-                  {fmtDate(m.next_refill!)}).
+                  <div className="font-bold">{m.name}: refill {cuando}</div>
+                  <div className="text-xs opacity-80">
+                    {fmtDate(m.next_refill!)}
+                  </div>
                 </div>
                 <button
                   onClick={() => handleMarkRefilled(m._id)}
                   disabled={refilling === m._id}
-                  className="min-h-9 shrink-0 rounded-md border border-amber bg-amber px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+                  className="min-h-9 shrink-0 rounded-md bg-amber px-3 py-1.5 text-xs font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
                 >
                   {refilling === m._id ? "..." : "Hice el refill"}
                 </button>
@@ -336,9 +344,7 @@ export default function MedicamentosPage() {
       </div>
 
       <div className="mt-6">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
-          Lista
-        </div>
+        <h2 className="mb-3 text-xl font-semibold">Medicamentos</h2>
         {meds === undefined && (
           <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
             Cargando...
@@ -350,50 +356,72 @@ export default function MedicamentosPage() {
           </div>
         )}
         {meds && meds.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {meds.map((m) => {
               const d = m.next_refill ? daysUntil(m.next_refill) : null;
               const badge =
                 d === null
                   ? null
                   : d < 0
-                    ? { text: "Vencido", className: "bg-red-bg text-red" }
+                    ? {
+                        text: "Vencido",
+                        variant: "danger" as const,
+                        icon: "error",
+                      }
                     : d <= 7
-                      ? { text: `En ${d} día${d === 1 ? "" : "s"}`, className: "bg-amber-bg text-amber" }
-                      : { text: fmtDate(m.next_refill!), className: "bg-green-bg text-green" };
+                      ? {
+                          text: `En ${d} día${d === 1 ? "" : "s"}`,
+                          variant: "warn" as const,
+                          icon: "schedule",
+                        }
+                      : {
+                          text: `Refill ${fmtDate(m.next_refill!)}`,
+                          variant: "success" as const,
+                          icon: "check_circle",
+                        };
               const showAttribution = !!m.updated_by;
               return (
                 <div
                   key={m._id}
-                  className="rounded-xl border border-border bg-bg p-4"
+                  className="rounded-xl border border-l-4 border-border border-l-blue bg-bg p-4"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      aria-hidden="true"
+                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-bg text-blue"
+                    >
+                      <Icon name="medication" filled className="text-3xl" />
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium">{m.name}</div>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-base font-bold leading-tight">
+                          {m.name}
+                        </h3>
+                        {badge && (
+                          <Pill variant={badge.variant} icon={badge.icon}>
+                            {badge.text}
+                          </Pill>
+                        )}
+                      </div>
                       {m.dosage && (
-                        <div className="mt-1 text-xs text-text-2">{m.dosage}</div>
+                        <div className="mt-1 text-sm text-text-2">
+                          {m.dosage}
+                        </div>
                       )}
                       {m.doctor && (
-                        <div className="text-xs text-text-2">{m.doctor}</div>
+                        <div className="text-sm text-text-2">{m.doctor}</div>
                       )}
                       {m.last_refill && (
-                        <div className="text-xs text-text-2">
+                        <div className="mt-1 text-xs text-text-3">
                           Último refill: {fmtDate(m.last_refill)}
                         </div>
                       )}
                       {m.notes && (
-                        <div className="mt-1 text-xs italic text-text-2">
+                        <div className="mt-1 text-sm italic text-text-2">
                           {m.notes}
                         </div>
                       )}
                     </div>
-                    {badge && (
-                      <span
-                        className={`shrink-0 rounded-md px-2 py-1 text-xs font-medium ${badge.className}`}
-                      >
-                        {badge.text}
-                      </span>
-                    )}
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
                     {showAttribution ? (
@@ -409,7 +437,8 @@ export default function MedicamentosPage() {
                           </>
                         ) : (
                           <>
-                            Lo actualizó {m.updated_by_name} {relativeTime(m.updated_at)}
+                            Lo actualizó {m.updated_by_name}{" "}
+                            {relativeTime(m.updated_at)}
                           </>
                         )}
                       </div>

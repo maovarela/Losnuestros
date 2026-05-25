@@ -2,49 +2,51 @@
 
 :root {
   --bg: #ffffff;
-  --bg-2: #f5f5f3;
-  --bg-3: #ebebea;
-  --text: #1a1a1a;
-  --text-2: #5a5a5a;
-  --text-3: #767676;
-  --border: rgba(0, 0, 0, 0.12);
-  --border-2: rgba(0, 0, 0, 0.22);
-  --green-bg: #eaf3de;
-  --green: #3b6d11;
-  --green-border: rgba(59, 109, 17, 0.3);
-  --red-bg: #fcebeb;
-  --red: #a32d2d;
-  --red-border: rgba(163, 45, 45, 0.3);
+  --bg-2: #f2f4f6;
+  --bg-3: #e6e8ea;
+  --body-bg: #f7f9fb;
+  --text: #191c1e;
+  --text-2: #41474e;
+  --text-3: #72787f;
+  --border: #c1c7cf;
+  --border-2: #72787f;
+  --green-bg: #a3f0cc;
+  --green: #1a6b4f;
+  --green-border: rgba(26, 107, 79, 0.35);
+  --red-bg: #ffdad6;
+  --red: #ba1a1a;
+  --red-border: rgba(186, 26, 26, 0.35);
   --amber-bg: #faeeda;
   --amber: #854f0b;
-  --amber-border: rgba(133, 79, 11, 0.3);
-  --blue-bg: #e6f1fb;
-  --blue: #185fa5;
-  --blue-border: rgba(24, 95, 165, 0.3);
+  --amber-border: rgba(133, 79, 11, 0.35);
+  --blue-bg: #cde5ff;
+  --blue: #074469;
+  --blue-border: rgba(7, 68, 105, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1e1e1c;
-    --bg-2: #2a2a28;
-    --bg-3: #333330;
-    --text: #f0f0ee;
-    --text-2: #b8b8b6;
-    --text-3: #8e8e8c;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-2: rgba(255, 255, 255, 0.2);
-    --green-bg: #173404;
-    --green: #97c459;
-    --green-border: rgba(151, 196, 89, 0.3);
-    --red-bg: #501313;
-    --red: #f09595;
-    --red-border: rgba(240, 149, 149, 0.3);
+    --bg: #1e2021;
+    --bg-2: #2a2d2f;
+    --bg-3: #34373a;
+    --body-bg: #14171a;
+    --text: #e1e3e5;
+    --text-2: #c1c7cf;
+    --text-3: #8e9197;
+    --border: rgba(255, 255, 255, 0.14);
+    --border-2: rgba(255, 255, 255, 0.28);
+    --green-bg: #002115;
+    --green: #8ad6b4;
+    --green-border: rgba(138, 214, 180, 0.35);
+    --red-bg: #93000a;
+    --red: #ffb4ab;
+    --red-border: rgba(255, 180, 171, 0.35);
     --amber-bg: #412402;
     --amber: #ef9f27;
-    --amber-border: rgba(239, 159, 39, 0.3);
-    --blue-bg: #042c53;
-    --blue: #85b7eb;
-    --blue-border: rgba(133, 183, 235, 0.3);
+    --amber-border: rgba(239, 159, 39, 0.35);
+    --blue-bg: #001d32;
+    --blue: #9ccbf7;
+    --blue-border: rgba(156, 203, 247, 0.35);
   }
 }
 
@@ -71,12 +73,12 @@
   --color-blue-bg: var(--blue-bg);
   --color-blue-border: var(--blue-border);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-sans: var(--font-atkinson), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "SF Mono", "Fira Code", ui-monospace, monospace;
 }
 
 body {
-  background: var(--bg-3);
+  background: var(--body-bg);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;

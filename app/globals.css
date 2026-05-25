@@ -27,35 +27,6 @@
   --purple-border: rgba(109, 93, 161, 0.35);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1e2021;
-    --bg-2: #2a2d2f;
-    --bg-3: #34373a;
-    --body-bg: #14171a;
-    --text: #e1e3e5;
-    --text-2: #c1c7cf;
-    --text-3: #8e9197;
-    --border: rgba(255, 255, 255, 0.14);
-    --border-2: rgba(255, 255, 255, 0.28);
-    --green-bg: #002115;
-    --green: #8ad6b4;
-    --green-border: rgba(138, 214, 180, 0.35);
-    --red-bg: #93000a;
-    --red: #ffb4ab;
-    --red-border: rgba(255, 180, 171, 0.35);
-    --amber-bg: #412402;
-    --amber: #ef9f27;
-    --amber-border: rgba(239, 159, 39, 0.35);
-    --blue-bg: #001d32;
-    --blue: #9ccbf7;
-    --blue-border: rgba(156, 203, 247, 0.35);
-    --purple-bg: #1f0c50;
-    --purple: #cdbdff;
-    --purple-border: rgba(205, 189, 255, 0.35);
-  }
-}
-
 @theme inline {
   --color-bg: var(--bg);
   --color-bg-2: var(--bg-2);

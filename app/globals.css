@@ -4,27 +4,27 @@
   --bg: #ffffff;
   --bg-2: #f2f4f6;
   --bg-3: #e6e8ea;
-  --body-bg: #f7f9fb;
+  --body-bg: #f8fafc;
   --text: #191c1e;
   --text-2: #41474e;
   --text-3: #72787f;
   --border: #c1c7cf;
   --border-2: #72787f;
-  --green-bg: #a3f0cc;
-  --green: #1a6b4f;
-  --green-border: rgba(26, 107, 79, 0.35);
+  --green-bg: #c8ebde;
+  --green: #438e79;
+  --green-border: rgba(67, 142, 121, 0.35);
   --red-bg: #ffdad6;
   --red: #ba1a1a;
   --red-border: rgba(186, 26, 26, 0.35);
   --amber-bg: #faeeda;
   --amber: #854f0b;
   --amber-border: rgba(133, 79, 11, 0.35);
-  --blue-bg: #cde5ff;
-  --blue: #074469;
-  --blue-border: rgba(7, 68, 105, 0.35);
-  --purple-bg: #e8deff;
-  --purple: #463677;
-  --purple-border: rgba(70, 54, 119, 0.35);
+  --blue-bg: #d3e3f1;
+  --blue: #2a5c82;
+  --blue-border: rgba(42, 92, 130, 0.35);
+  --purple-bg: #e3dcf2;
+  --purple: #6d5da1;
+  --purple-border: rgba(109, 93, 161, 0.35);
 }
 
 @media (prefers-color-scheme: dark) {

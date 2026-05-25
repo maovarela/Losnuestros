@@ -396,9 +396,12 @@ export default function FinanzasPage() {
       </div>
 
       <div className="mt-4 rounded-xl border border-border bg-bg p-4">
-        <div className="text-xs font-medium uppercase tracking-wider text-text-3">
-          Estado de cuenta · {monthLabel(selectedMonth)}
-        </div>
+        <h2 className="text-xl font-semibold">
+          Estado de cuenta
+          <span className="ml-2 text-base font-normal text-text-2">
+            {monthLabel(selectedMonth)}
+          </span>
+        </h2>
 
         {totals.hasFinal && (
           <div className="glass-card mt-3 rounded-2xl p-6">
@@ -510,8 +513,8 @@ export default function FinanzasPage() {
       </div>
 
       {balances && balances.some((b) => b.amount > 0) && (
-        <div className="mt-4 rounded-xl border border-amber-border bg-amber-bg p-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-amber">
+        <div className="mt-4 rounded-xl border-l-4 border-amber bg-amber-bg p-4">
+          <div className="text-xl font-semibold text-amber">
             Cuentas pendientes
           </div>
           <p className="mt-1 text-xs text-text-2">
@@ -728,9 +731,7 @@ export default function FinanzasPage() {
 
       {history && history.length > 0 && (
         <div className="mt-6">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
-            Historial
-          </div>
+          <h2 className="mb-3 text-xl font-semibold">Historial</h2>
           <div className="overflow-x-auto rounded-xl border border-border bg-bg">
             <table className="w-full text-sm">
               <thead>
@@ -838,9 +839,7 @@ export default function FinanzasPage() {
 
       {audit && audit.length > 0 && (
         <div className="mt-6">
-          <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
-            Bitácora
-          </div>
+          <h2 className="mb-3 text-xl font-semibold">Bitácora</h2>
           <div className="rounded-xl border border-border bg-bg">
             <ul className="divide-y divide-border">
               {audit.map((row) => (

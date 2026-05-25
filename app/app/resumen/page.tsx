@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
+import { Icon } from "../_components/icon";
 
 const rtf = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 const MESES = [
@@ -349,14 +350,15 @@ export default function ResumenPage() {
       </Link>
 
       <section aria-label="Lo que viene esta semana">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
-          Lo que viene esta semana
-        </div>
+        <h2 className="mb-3 text-xl font-semibold">Lo que viene esta semana</h2>
         <div className="rounded-xl border border-border bg-bg p-4">
           {loading && <div className="text-sm text-text-2">Cargando...</div>}
           {!loading && upcoming.length === 0 && (
-            <div className="rounded-lg border border-green-border bg-green-bg px-3 py-2 text-sm text-green">
-              Todo al día. Sin pagos vencidos, refills próximos ni citas en los próximos días.
+            <div className="flex items-center gap-3 rounded-lg border-l-4 border-green bg-green-bg px-3 py-3 text-sm text-green">
+              <Icon name="check_circle" filled className="shrink-0 text-2xl" />
+              <span className="font-medium">
+                Todo al día. Sin pagos vencidos, refills próximos ni citas en los próximos días.
+              </span>
             </div>
           )}
           {!loading && upcoming.length > 0 && (
@@ -375,9 +377,7 @@ export default function ResumenPage() {
       </section>
 
       <section aria-label="Lo que pasó esta semana" className="mt-6">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
-          Lo que pasó esta semana
-        </div>
+        <h2 className="mb-3 text-xl font-semibold">Lo que pasó esta semana</h2>
         <div className="rounded-xl border border-border bg-bg">
           {loading && (
             <div className="p-4 text-sm text-text-2">Cargando...</div>
@@ -434,47 +434,63 @@ function UpcomingCard({
   pending: boolean;
   onCta: () => void;
 }) {
-  const colorClasses =
+  const tone =
     item.severity === "danger"
-      ? "border-red-border bg-red-bg text-red"
+      ? {
+          bg: "bg-red-bg",
+          border: "border-red",
+          text: "text-red",
+          button: "bg-red text-bg",
+        }
       : item.severity === "warn"
-        ? "border-amber-border bg-amber-bg text-amber"
-        : "border-blue-border bg-blue-bg text-blue";
-  const buttonClasses =
-    item.severity === "danger"
-      ? "bg-red text-bg border-red"
-      : item.severity === "warn"
-        ? "bg-amber text-bg border-amber"
-        : "bg-blue text-bg border-blue";
+        ? {
+            bg: "bg-amber-bg",
+            border: "border-amber",
+            text: "text-amber",
+            button: "bg-amber text-bg",
+          }
+        : {
+            bg: "bg-blue-bg",
+            border: "border-blue",
+            text: "text-blue",
+            button: "bg-blue text-bg",
+          };
+  const icon =
+    item.cta.kind === "refill"
+      ? "medication"
+      : item.cta.kind === "pay"
+        ? "payments"
+        : "event";
 
   return (
-    <div className={`rounded-lg border px-3 py-3 ${colorClasses}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium">{item.title}</div>
-          <div className="text-xs opacity-85">{item.sub}</div>
-        </div>
-        {item.cta.kind === "viewCita" ? (
-          <Link
-            href={`/app/citas?edit=${item.cta.citaId}`}
-            className={`min-h-9 shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium active:opacity-80 hover:opacity-85 ${buttonClasses}`}
-          >
-            Ver cita
-          </Link>
-        ) : (
-          <button
-            onClick={onCta}
-            disabled={pending}
-            className={`min-h-9 shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium disabled:opacity-50 active:opacity-80 hover:opacity-85 ${buttonClasses}`}
-          >
-            {pending
-              ? "..."
-              : item.cta.kind === "refill"
-                ? "Hice el refill"
-                : "Marcar pagado"}
-          </button>
-        )}
+    <div
+      className={`flex items-center gap-3 rounded-lg border-l-4 px-3 py-3 ${tone.bg} ${tone.border} ${tone.text}`}
+    >
+      <Icon name={icon} filled className="shrink-0 text-2xl" />
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-bold leading-tight">{item.title}</div>
+        <div className="text-xs opacity-85">{item.sub}</div>
       </div>
+      {item.cta.kind === "viewCita" ? (
+        <Link
+          href={`/app/citas?edit=${item.cta.citaId}`}
+          className={`min-h-9 shrink-0 rounded-md px-3 py-1.5 text-xs font-medium active:opacity-80 hover:opacity-85 ${tone.button}`}
+        >
+          Ver cita
+        </Link>
+      ) : (
+        <button
+          onClick={onCta}
+          disabled={pending}
+          className={`min-h-9 shrink-0 rounded-md px-3 py-1.5 text-xs font-medium disabled:opacity-50 active:opacity-80 hover:opacity-85 ${tone.button}`}
+        >
+          {pending
+            ? "..."
+            : item.cta.kind === "refill"
+              ? "Hice el refill"
+              : "Marcar pagado"}
+        </button>
+      )}
     </div>
   );
 }

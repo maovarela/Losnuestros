@@ -5,6 +5,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
+import { Icon } from "../_components/icon";
+import { Pill } from "../_components/pill";
 import { WhoDidIt } from "../_components/who-did-it";
 
 type FormState = {
@@ -173,25 +175,38 @@ export default function CitasPage() {
   return (
     <main>
       {proxima && (
-        <div className="rounded-xl border border-blue-border bg-blue-bg p-4">
-          <div className="text-xs font-medium text-blue">Próxima cita</div>
-          {proxima.doctor && (
-            <div className="mt-1 text-base font-medium text-blue">
-              {proxima.doctor}
+        <div className="flex items-start gap-3 rounded-xl border-l-4 border-green bg-green-bg p-4">
+          <Icon
+            name="event"
+            filled
+            className="shrink-0 text-2xl text-green"
+          />
+          <div className="min-w-0 flex-1 text-green">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-bold uppercase tracking-wider">
+                Próxima cita
+              </div>
+              <Pill variant="success">
+                {(() => {
+                  const d = daysUntil(proxima.date);
+                  return d === 0
+                    ? "Hoy"
+                    : d === 1
+                      ? "Mañana"
+                      : `En ${d} días`;
+                })()}
+              </Pill>
             </div>
-          )}
-          <div className="mt-1 text-sm text-blue">
-            {fmtDate(proxima.date)} ·{" "}
-            {(() => {
-              const d = daysUntil(proxima.date);
-              return d === 0 ? "hoy" : d === 1 ? "mañana" : `en ${d} días`;
-            })()}
+            {proxima.doctor && (
+              <div className="mt-1 text-base font-bold">{proxima.doctor}</div>
+            )}
+            <div className="mt-0.5 text-sm">{fmtDate(proxima.date)}</div>
+            {proxima.location && (
+              <div className="mt-0.5 text-xs opacity-85">
+                {proxima.location}
+              </div>
+            )}
           </div>
-          {proxima.location && (
-            <div className="mt-1 text-xs text-blue opacity-85">
-              {proxima.location}
-            </div>
-          )}
         </div>
       )}
 
@@ -292,9 +307,7 @@ export default function CitasPage() {
       </div>
 
       <div className="mt-6">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-text-3">
-          Historial
-        </div>
+        <h2 className="mb-3 text-xl font-semibold">Citas médicas</h2>
         {citas === undefined && (
           <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
             Cargando...
@@ -306,36 +319,57 @@ export default function CitasPage() {
           </div>
         )}
         {sorted.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {sorted.map((c) => {
               const d = daysUntil(c.date);
               const isFuture = d >= 0;
               const showAttribution = !!c.updated_by;
+              const badge = isFuture
+                ? d === 0
+                  ? { text: "Hoy", variant: "success" as const }
+                  : d === 1
+                    ? { text: "Mañana", variant: "success" as const }
+                    : d <= 7
+                      ? {
+                          text: `En ${d} días`,
+                          variant: "warn" as const,
+                        }
+                      : {
+                          text: `En ${d} días`,
+                          variant: "info" as const,
+                        }
+                : null;
               return (
                 <div
                   key={c._id}
-                  className="rounded-xl border border-border bg-bg p-4"
+                  className="rounded-xl border border-l-4 border-border border-l-green bg-bg p-4"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div
+                      aria-hidden="true"
+                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-green-bg text-green"
+                    >
+                      <Icon name="event" filled className="text-3xl" />
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {fmtDate(c.date)}
-                        </span>
-                        {isFuture && (
-                          <span className="rounded-md bg-blue-bg px-2 py-0.5 text-xs font-medium text-blue">
-                            {d === 0 ? "Hoy" : d === 1 ? "Mañana" : `En ${d} días`}
-                          </span>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-base font-bold leading-tight">
+                          {c.doctor || "Cita médica"}
+                        </h3>
+                        {badge && (
+                          <Pill variant={badge.variant}>{badge.text}</Pill>
                         )}
                       </div>
-                      {c.doctor && (
-                        <div className="mt-1 text-sm text-text">{c.doctor}</div>
-                      )}
+                      <div className="mt-1 text-sm text-text-2">
+                        {fmtDate(c.date)}
+                      </div>
                       {c.reason && (
-                        <div className="mt-1 text-xs text-text-2">{c.reason}</div>
+                        <div className="mt-1 text-sm text-text-2">
+                          {c.reason}
+                        </div>
                       )}
                       {c.location && (
-                        <div className="mt-1 text-xs text-text-2">
+                        <div className="mt-1 text-xs text-text-3">
                           {c.location}
                         </div>
                       )}

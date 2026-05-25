@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import {
+  action,
   internalAction,
   internalQuery,
 } from "./_generated/server";
@@ -307,12 +308,21 @@ export const internalCollectDigestForPatient = internalQuery({
 export const internalListAllCaregiversWithEmail = internalQuery({
   handler: async (ctx) => {
     const all = await ctx.db.query("caregivers").collect();
-    return all.filter((c) => c.email).map((c) => ({
-      id: c._id,
-      name: c.name,
-      email: c.email as string,
-      patientId: c.patient_id,
-    }));
+    return all
+      .filter((c) => c.email && c.role !== "patient")
+      .map((c) => ({
+        id: c._id,
+        name: c.name,
+        email: c.email as string,
+        patientId: c.patient_id,
+      }));
+  },
+});
+
+export const sendDigestNow = action({
+  handler: async (ctx) => {
+    await ctx.runAction(internal.email.sendWeeklyDigest, {});
+    return { sent: true };
   },
 });
 

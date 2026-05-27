@@ -1,6 +1,6 @@
 "use client";
-import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
@@ -36,10 +36,15 @@ function shortMonthLabel(key: string): string {
   return `${MESES[parseInt(m) - 1]} ${y}`;
 }
 
-function frequencyLabel(freq: string | undefined, dueDay: number | undefined): string {
+function frequencyLabel(
+  freq: string | undefined,
+  dueDay: number | undefined,
+): string {
   if (!freq) return "";
-  if (freq === "monthly") return dueDay ? `Antes del ${dueDay} de cada mes` : "Mensual";
-  if (freq === "bimonthly") return dueDay ? `Bimestral · antes del ${dueDay}` : "Cada 2 meses";
+  if (freq === "monthly")
+    return dueDay ? `Antes del ${dueDay} de cada mes` : "Mensual";
+  if (freq === "bimonthly")
+    return dueDay ? `Bimestral · antes del ${dueDay}` : "Cada 2 meses";
   if (freq === "weekly") return "Semanal";
   if (freq === "per_visit") return "Por visita";
   return freq;
@@ -53,7 +58,8 @@ function freqVariant(freq: string | undefined): "info" | "warn" | "neutral" {
 
 function serviceIcon(name: string): string {
   const n = name.toLowerCase();
-  if (n.includes("compensar") || n.includes("salud")) return "health_and_safety";
+  if (n.includes("compensar") || n.includes("salud"))
+    return "health_and_safety";
   if (n.includes("enel") || n.includes("energ")) return "bolt";
   if (n.includes("gas")) return "local_fire_department";
   if (n.includes("agua") || n.includes("acueducto")) return "water_drop";
@@ -104,13 +110,15 @@ type FinanceMonth = {
   [key: string]: unknown;
 };
 
+type Status = {
+  current: { monthKey: string; amount: number; paidBy?: Id<"caregivers"> } | null;
+  last: { monthKey: string; amount: number; paidBy?: Id<"caregivers"> } | null;
+};
+
 function findCurrentStatus(
   history: FinanceMonth[] | undefined,
   fields: FinanceFieldMap,
-): {
-  current: { monthKey: string; amount: number; paidBy?: Id<"caregivers"> } | null;
-  last: { monthKey: string; amount: number; paidBy?: Id<"caregivers"> } | null;
-} {
+): Status {
   if (!history || history.length === 0) return { current: null, last: null };
   const thisMonth = currentMonthKey();
   const sorted = [...history].sort((a, b) =>
@@ -142,6 +150,19 @@ function findCurrentStatus(
     : null;
   return { current, last };
 }
+
+type RefDoc = {
+  _id: Id<"payment_references">;
+  service_name: string;
+  category: string;
+  frequency?: string;
+  due_day?: number;
+  amount_reference?: number;
+  amount_label?: string;
+  details?: { label: string; value: string }[];
+  notes?: string;
+  sort_order: number;
+};
 
 export default function ReferenciasPage() {
   const {
@@ -182,62 +203,16 @@ export default function ReferenciasPage() {
       {grouped.servicios.length > 0 && (
         <section>
           <h2 className="mb-3 text-xl font-semibold">Servicios públicos</h2>
-          <div className="space-y-3">
-            {grouped.servicios.map((r) => {
-              const fields = refToFinanceFields(r.service_name, r.category);
-              const status = fields
-                ? findCurrentStatus(history as FinanceMonth[] | undefined, fields)
-                : { current: null, last: null };
-              return (
-                <div
-                  key={r._id}
-                  className="rounded-xl border border-l-4 border-border border-l-amber bg-bg p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      aria-hidden="true"
-                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-amber-bg text-amber"
-                    >
-                      <Icon name={serviceIcon(r.service_name)} className="text-3xl" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-base font-bold leading-tight">
-                          {r.service_name}
-                        </h3>
-                        {r.frequency && (
-                          <Pill variant={freqVariant(r.frequency)}>
-                            {frequencyLabel(r.frequency, r.due_day)}
-                          </Pill>
-                        )}
-                      </div>
-                      <StatusBlock
-                        status={status}
-                        fallbackLabel={r.amount_label}
-                        fallbackAmount={r.amount_reference}
-                        resolvePayer={resolvePayer}
-                      />
-                      {r.details && r.details.length > 0 && (
-                        <div className="mt-3 space-y-1.5 border-t border-border pt-2">
-                          {r.details.map((d, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-baseline justify-between text-sm"
-                            >
-                              <span className="text-text-2">{d.label}</span>
-                              <span className="font-mono text-xs">{d.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {r.notes && (
-                        <div className="mt-2 text-xs text-text-3">{r.notes}</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-2">
+            {grouped.servicios.map((r) => (
+              <RefCard
+                key={r._id}
+                r={r as RefDoc}
+                history={history as FinanceMonth[] | undefined}
+                resolvePayer={resolvePayer}
+                caregiverId={caregiverId}
+              />
+            ))}
           </div>
         </section>
       )}
@@ -245,52 +220,16 @@ export default function ReferenciasPage() {
       {grouped.hogar.length > 0 && (
         <section className="mt-6">
           <h2 className="mb-3 text-xl font-semibold">Gastos fijos del hogar</h2>
-          <div className="space-y-3">
-            {grouped.hogar.map((r) => {
-              const fields = refToFinanceFields(r.service_name, r.category);
-              const status = fields
-                ? findCurrentStatus(history as FinanceMonth[] | undefined, fields)
-                : { current: null, last: null };
-              return (
-                <div
-                  key={r._id}
-                  className="rounded-xl border border-l-4 border-border border-l-amber bg-bg p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      aria-hidden="true"
-                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-amber-bg text-amber"
-                    >
-                      <Icon name="home" className="text-3xl" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-bold leading-tight">
-                        {r.service_name}
-                      </h3>
-                      <StatusBlock
-                        status={status}
-                        fallbackLabel={r.amount_label}
-                        fallbackAmount={r.amount_reference}
-                        resolvePayer={resolvePayer}
-                      />
-                      {r.details && r.details.length > 0 && (
-                        <div className="mt-2 space-y-1 border-t border-border pt-2">
-                          {r.details.map((d, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-baseline justify-between text-sm"
-                            >
-                              <span className="text-text-2">{d.label}</span>
-                              <span>{d.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-2">
+            {grouped.hogar.map((r) => (
+              <RefCard
+                key={r._id}
+                r={r as RefDoc}
+                history={history as FinanceMonth[] | undefined}
+                resolvePayer={resolvePayer}
+                caregiverId={caregiverId}
+              />
+            ))}
           </div>
         </section>
       )}
@@ -298,30 +237,113 @@ export default function ReferenciasPage() {
   );
 }
 
-function StatusBlock({
+function RefCard({
+  r,
+  history,
+  resolvePayer,
+  caregiverId,
+}: {
+  r: RefDoc;
+  history: FinanceMonth[] | undefined;
+  resolvePayer: (id: Id<"caregivers">) => string;
+  caregiverId: Id<"caregivers">;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  const fields = refToFinanceFields(r.service_name, r.category);
+  const status = fields
+    ? findCurrentStatus(history, fields)
+    : { current: null, last: null };
+
+  if (editing) {
+    return (
+      <RefEditForm
+        r={r}
+        caregiverId={caregiverId}
+        onClose={() => setEditing(false)}
+      />
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-l-4 border-border border-l-amber bg-bg p-3">
+      <div className="flex items-start gap-2.5">
+        <div
+          aria-hidden="true"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-bg text-amber"
+        >
+          <Icon name={serviceIcon(r.service_name)} className="text-2xl" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-bold leading-tight">{r.service_name}</h3>
+            <div className="flex shrink-0 items-center gap-1.5">
+              {r.frequency && (
+                <Pill variant={freqVariant(r.frequency)}>
+                  {frequencyLabel(r.frequency, r.due_day)}
+                </Pill>
+              )}
+              <button
+                onClick={() => setEditing(true)}
+                aria-label="Editar"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-2 active:bg-bg-2 hover:bg-bg-2"
+              >
+                <Icon name="edit" className="text-base" />
+              </button>
+            </div>
+          </div>
+          <CompactStatus
+            status={status}
+            fallbackLabel={r.amount_label}
+            fallbackAmount={r.amount_reference}
+            resolvePayer={resolvePayer}
+          />
+          {r.details && r.details.length > 0 && (
+            <div className="mt-1 space-y-0.5 text-xs text-text-2">
+              {r.details.map((d, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-baseline justify-between gap-2"
+                >
+                  <span>{d.label}</span>
+                  <span className="font-mono text-text">{d.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {r.notes && (
+            <div className="mt-1 text-xs italic text-text-3">{r.notes}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompactStatus({
   status,
   fallbackLabel,
   fallbackAmount,
   resolvePayer,
 }: {
-  status: {
-    current: { monthKey: string; amount: number; paidBy?: Id<"caregivers"> } | null;
-    last: { monthKey: string; amount: number; paidBy?: Id<"caregivers"> } | null;
-  };
+  status: Status;
   fallbackLabel?: string;
   fallbackAmount?: number;
   resolvePayer: (id: Id<"caregivers">) => string;
 }) {
-  const thisMonth = currentMonthKey();
-  const thisMonthLabel = shortMonthLabel(thisMonth);
+  const thisMonthLabel = shortMonthLabel(currentMonthKey());
   const { current, last } = status;
 
   if (current && current.amount > 0) {
     const paidByName = current.paidBy ? resolvePayer(current.paidBy) : null;
     if (paidByName) {
       return (
-        <div className="mt-1.5 flex items-center gap-1.5 text-sm text-text-2">
-          <Icon name="check_circle" filled className="text-base text-green" />
+        <div className="mt-0.5 flex items-center gap-1 text-xs text-text-2">
+          <Icon
+            name="check_circle"
+            filled
+            className="text-sm text-green"
+          />
           <span>
             <span className="font-medium tabular-nums text-text">
               {fmtCOP(current.amount)}
@@ -332,8 +354,8 @@ function StatusBlock({
       );
     }
     return (
-      <div className="mt-1.5 flex items-center gap-1.5 text-sm text-text-2">
-        <Icon name="schedule" className="text-base text-amber" />
+      <div className="mt-0.5 flex items-center gap-1 text-xs text-text-2">
+        <Icon name="schedule" className="text-sm text-amber" />
         <span>
           {thisMonthLabel}: sin pagar ·{" "}
           <span className="font-medium tabular-nums text-text">
@@ -345,30 +367,22 @@ function StatusBlock({
   }
 
   if (last) {
-    const paidByName = last.paidBy ? resolvePayer(last.paidBy) : null;
     return (
-      <div className="mt-1.5 space-y-0.5">
-        <div className="flex items-center gap-1.5 text-sm text-amber">
-          <Icon name="schedule" className="text-base" />
-          <span>{thisMonthLabel}: sin registrar</span>
-        </div>
-        <div className="text-xs text-text-3">
-          Última factura:{" "}
-          <span className="font-medium tabular-nums">
-            {fmtCOP(last.amount)}
-          </span>{" "}
-          ({shortMonthLabel(last.monthKey).toLowerCase()}
-          {paidByName ? `, ${paidByName}` : ""})
-        </div>
+      <div className="mt-0.5 text-xs text-text-3">
+        Última factura:{" "}
+        <span className="font-medium tabular-nums">
+          {fmtCOP(last.amount)}
+        </span>{" "}
+        ({shortMonthLabel(last.monthKey).toLowerCase()})
       </div>
     );
   }
 
   if (fallbackLabel || fallbackAmount) {
     return (
-      <div className="mt-1.5 text-xs text-text-3">
+      <div className="mt-0.5 text-xs text-text-3">
         Valor de referencia:{" "}
-        <span className="font-medium text-text tabular-nums">
+        <span className="font-medium tabular-nums">
           {fallbackLabel ?? fmtCOP(fallbackAmount!)}
         </span>
       </div>
@@ -376,4 +390,175 @@ function StatusBlock({
   }
 
   return null;
+}
+
+function RefEditForm({
+  r,
+  caregiverId,
+  onClose,
+}: {
+  r: RefDoc;
+  caregiverId: Id<"caregivers">;
+  onClose: () => void;
+}) {
+  const update = useMutation(api.paymentReferences.update);
+  const [frequency, setFrequency] = useState(r.frequency ?? "");
+  const [dueDay, setDueDay] = useState(r.due_day?.toString() ?? "");
+  const [notes, setNotes] = useState(r.notes ?? "");
+  const [details, setDetails] = useState<{ label: string; value: string }[]>(
+    r.details ? r.details.map((d) => ({ ...d })) : [],
+  );
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const cleanDetails = details
+        .map((d) => ({ label: d.label.trim(), value: d.value.trim() }))
+        .filter((d) => d.label || d.value);
+      await update({
+        id: r._id,
+        updatedBy: caregiverId,
+        service_name: r.service_name,
+        category: r.category,
+        sort_order: r.sort_order,
+        frequency: frequency || undefined,
+        due_day: dueDay ? parseInt(dueDay, 10) : undefined,
+        amount_reference: r.amount_reference,
+        amount_label: r.amount_label,
+        details: cleanDetails.length > 0 ? cleanDetails : undefined,
+        notes: notes.trim() || undefined,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function addDetail() {
+    setDetails([...details, { label: "", value: "" }]);
+  }
+
+  function updateDetail(idx: number, key: "label" | "value", val: string) {
+    setDetails(
+      details.map((d, i) => (i === idx ? { ...d, [key]: val } : d)),
+    );
+  }
+
+  function removeDetail(idx: number) {
+    setDetails(details.filter((_, i) => i !== idx));
+  }
+
+  return (
+    <div className="rounded-xl border border-l-4 border-blue-border border-l-blue bg-bg p-4">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-base font-bold">{r.service_name}</h3>
+        <button
+          onClick={onClose}
+          aria-label="Cancelar"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-text-2 active:bg-bg-2 hover:bg-bg-2"
+        >
+          <Icon name="close" className="text-xl" />
+        </button>
+      </div>
+
+      <div className="mt-3 space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-text-2">Frecuencia</label>
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            >
+              <option value="">(ninguna)</option>
+              <option value="monthly">Mensual</option>
+              <option value="bimonthly">Bimestral</option>
+              <option value="weekly">Semanal</option>
+              <option value="per_visit">Por visita</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-text-2">
+              Día de vencimiento
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={31}
+              value={dueDay}
+              onChange={(e) => setDueDay(e.target.value)}
+              placeholder="Ej: 21"
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs text-text-2">Datos de pago</label>
+          <div className="mt-1 space-y-2">
+            {details.map((d, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={d.label}
+                  onChange={(e) => updateDetail(idx, "label", e.target.value)}
+                  placeholder="N° cliente"
+                  className="min-w-0 flex-1 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                />
+                <input
+                  type="text"
+                  value={d.value}
+                  onChange={(e) => updateDetail(idx, "value", e.target.value)}
+                  placeholder="0501354-1"
+                  className="min-w-0 flex-1 rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm font-mono focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                />
+                <button
+                  onClick={() => removeDetail(idx)}
+                  aria-label="Borrar este dato"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-red active:bg-red-bg hover:bg-red-bg"
+                >
+                  <Icon name="close" className="text-base" />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addDetail}
+              className="flex items-center gap-1 text-xs font-medium text-blue active:opacity-80 hover:opacity-85"
+            >
+              <Icon name="add" className="text-base" />
+              Agregar dato
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs text-text-2">Notas</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Ej: El valor varía mensualmente."
+            className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="min-h-9 rounded-md border border-border-2 bg-bg px-4 py-1.5 text-sm hover:bg-bg-2 active:bg-bg-2"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="min-h-9 rounded-md bg-blue px-4 py-1.5 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+          >
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

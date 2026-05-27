@@ -81,7 +81,6 @@ const REFERENCIAS_INICIALES = [
     service_name: "Alarma",
     category: "service",
     frequency: "monthly",
-    notes: "La paga la hermana. Valor por confirmar.",
     sort_order: 7,
   },
   {

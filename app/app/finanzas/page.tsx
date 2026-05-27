@@ -1089,30 +1089,8 @@ function PreviousMonthStatus({
   onGoToMonth: (k: string) => void;
   resolvePayerName: (id: Id<"caregivers">) => string;
 }) {
-  if (prev === undefined) return null;
+  if (prev === undefined || prev === null) return null;
   const monthName = monthLabel(prevKey);
-
-  if (prev === null) {
-    return (
-      <div className="mt-4 rounded-xl border border-border bg-bg p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold">Estado de {monthName}</h2>
-            <p className="mt-1 text-xs text-text-2">
-              No hay registro del mes anterior. Si lo recuerdas, ábrelo y
-              regístralo para no perder el rastro.
-            </p>
-          </div>
-          <button
-            onClick={() => onGoToMonth(prevKey)}
-            className="shrink-0 text-xs font-medium text-blue active:opacity-80 hover:opacity-85"
-          >
-            Abrir mes →
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const rows = SERVICE_KEYS.map((s) => {
     const amount = prev[s];

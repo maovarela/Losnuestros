@@ -180,8 +180,6 @@ export default function FinanzasPage() {
     useAppContext();
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [form, setForm] = useState<FormState>(emptyForm());
-  const [saving, setSaving] = useState(false);
-  const [savedFlag, setSavedFlag] = useState(false);
   const [settling, setSettling] = useState<Id<"caregivers"> | null>(null);
 
   const monthData = useQuery(api.financeMonths.getByMonth, {
@@ -201,9 +199,10 @@ export default function FinanzasPage() {
   const upsert = useMutation(api.financeMonths.upsert);
   const remove = useMutation(api.financeMonths.remove);
   const settle = useMutation(api.financeMonths.settle);
-  const setServicePayer = useMutation(api.financeMonths.setServicePayer);
-  const [payerJustSaved, setPayerJustSaved] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   function updateForm(updates: Partial<FormState>) {
     setForm((f) => ({ ...f, ...updates }));
@@ -211,10 +210,10 @@ export default function FinanzasPage() {
   }
 
   useEffect(() => {
-    if (!savedFlag) return;
-    const t = setTimeout(() => setSavedFlag(false), 3000);
+    if (saveStatus !== "saved") return;
+    const t = setTimeout(() => setSaveStatus("idle"), 2500);
     return () => clearTimeout(t);
-  }, [savedFlag]);
+  }, [saveStatus]);
 
   const initializedFor = useRef<string | null>(null);
 
@@ -308,26 +307,12 @@ export default function FinanzasPage() {
     };
   }, [form, previousMonthSaldo, patientCaregiver, settlements, selectedMonth]);
 
-  async function handlePayerChange(
-    service: ServiceKey,
-    paidBy: PayerId,
-  ) {
-    const amount = num(form[service]);
-    setForm((f) => ({ ...f, [`${service}_paid_by`]: paidBy }) as FormState);
-    setPayerJustSaved(service);
-    await setServicePayer({
-      patientId,
-      updatedBy: caregiverId,
-      monthKey: selectedMonth,
-      service,
-      paidBy: paidBy ?? undefined,
-      amount,
-    });
-    setTimeout(() => setPayerJustSaved(null), 1500);
+  function handlePayerChange(service: ServiceKey, paidBy: PayerId) {
+    updateForm({ [`${service}_paid_by`]: paidBy } as Partial<FormState>);
   }
 
   async function handleSave() {
-    setSaving(true);
+    setSaveStatus("saving");
     try {
       await upsert({
         patientId,
@@ -356,12 +341,21 @@ export default function FinanzasPage() {
         saldo_banco: form.saldo_banco.trim() ? num(form.saldo_banco) : undefined,
         nota: form.nota.trim() || undefined,
       });
-      setSavedFlag(true);
       setDirty(false);
-    } finally {
-      setSaving(false);
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("error");
     }
   }
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handle = setTimeout(() => {
+      handleSave();
+    }, 800);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, dirty]);
 
   async function handleDelete(id: Id<"finance_months">, key: string) {
     const ok = window.confirm(
@@ -441,8 +435,9 @@ export default function FinanzasPage() {
             </select>
           </div>
         </div>
-        <div className="mt-2 text-xs text-text-2">
-          Editando {monthLabel(selectedMonth)}
+        <div className="mt-2 flex items-center justify-between text-xs text-text-2">
+          <span>Editando {monthLabel(selectedMonth)}</span>
+          <SaveIndicator status={saveStatus} />
         </div>
       </div>
 
@@ -645,7 +640,6 @@ export default function FinanzasPage() {
             onChange={(v) => updateForm({ compensar: v })}
             onPaidBy={(p) => handlePayerChange("compensar", p)}
             options={payerOptions}
-            justSaved={payerJustSaved === "compensar"}
           />
           <PayerRow
             label="Energía Enel"
@@ -654,7 +648,6 @@ export default function FinanzasPage() {
             onChange={(v) => updateForm({ enel: v })}
             onPaidBy={(p) => handlePayerChange("enel", p)}
             options={payerOptions}
-            justSaved={payerJustSaved === "enel"}
           />
           <PayerRow
             label="Gas Vanti"
@@ -663,7 +656,6 @@ export default function FinanzasPage() {
             onChange={(v) => updateForm({ gas: v })}
             onPaidBy={(p) => handlePayerChange("gas", p)}
             options={payerOptions}
-            justSaved={payerJustSaved === "gas"}
           />
           <PayerRow
             label="Acueducto EAAB"
@@ -672,7 +664,6 @@ export default function FinanzasPage() {
             onChange={(v) => updateForm({ agua: v })}
             onPaidBy={(p) => handlePayerChange("agua", p)}
             options={payerOptions}
-            justSaved={payerJustSaved === "agua"}
           />
           <PayerRow
             label="Claro internet"
@@ -681,7 +672,6 @@ export default function FinanzasPage() {
             onChange={(v) => updateForm({ internet: v })}
             onPaidBy={(p) => handlePayerChange("internet", p)}
             options={payerOptions}
-            justSaved={payerJustSaved === "internet"}
           />
           <PayerRow
             label="Claro celular"
@@ -690,7 +680,6 @@ export default function FinanzasPage() {
             onChange={(v) => updateForm({ celular: v })}
             onPaidBy={(p) => handlePayerChange("celular", p)}
             options={payerOptions}
-            justSaved={payerJustSaved === "celular"}
           />
           <PayerRow
             label="Alarma"
@@ -699,7 +688,6 @@ export default function FinanzasPage() {
             onChange={(v) => updateForm({ alarma: v })}
             onPaidBy={(p) => handlePayerChange("alarma", p)}
             options={payerOptions}
-            justSaved={payerJustSaved === "alarma"}
           />
         </div>
 
@@ -785,56 +773,6 @@ export default function FinanzasPage() {
           />
         </div>
 
-        <div className="mt-4 rounded-md border border-border-2 bg-bg-2 p-3 text-xs text-text-2 space-y-1.5">
-          <div className="flex items-start gap-2">
-            <Icon
-              name="check_circle"
-              filled
-              className="mt-0.5 shrink-0 text-base text-green"
-            />
-            <span>
-              <strong>Cada servicio de arriba (Compensar, Enel, etc.):</strong>{" "}
-              cuando tocas quien pagó, se guarda el monto y el pagador al
-              instante.
-            </span>
-          </div>
-          <div className="flex items-start gap-2">
-            <Icon
-              name="edit"
-              className="mt-0.5 shrink-0 text-base text-blue"
-            />
-            <span>
-              <strong>Pensión, gastos del hogar, saldo y nota:</strong>{" "}
-              escríbelos y luego toca el botón de abajo.
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-          {dirty && !saving && (
-            <div className="mr-auto flex items-center gap-1 text-xs font-medium text-amber">
-              <Icon name="schedule" className="text-base" />
-              Cambios sin guardar
-            </div>
-          )}
-          {savedFlag && !dirty && (
-            <div className="mr-auto flex items-center gap-1 text-xs font-medium text-green">
-              <Icon name="check_circle" filled className="text-base" />
-              Guardado
-            </div>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            className="min-h-11 rounded-md bg-blue px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
-          >
-            {saving
-              ? "Guardando..."
-              : dirty
-                ? "Guardar montos y saldo"
-                : "Todo guardado"}
-          </button>
-        </div>
       </div>
 
       {history && history.length > 0 && (
@@ -973,6 +911,8 @@ export default function FinanzasPage() {
           </div>
         </div>
       )}
+
+      <SaveToast status={saveStatus} />
     </main>
   );
 }
@@ -1217,7 +1157,6 @@ function PayerRow({
   onChange,
   onPaidBy,
   options,
-  justSaved,
 }: {
   label: string;
   value: string;
@@ -1225,7 +1164,6 @@ function PayerRow({
   onChange: (v: string) => void;
   onPaidBy: (p: PayerId) => void;
   options: { id: PayerId; label: string }[];
-  justSaved?: boolean;
 }) {
   return (
     <div className="border-b border-border pb-3 last:border-0">
@@ -1263,13 +1201,69 @@ function PayerRow({
             </button>
           );
         })}
-        {justSaved && (
-          <span className="ml-1 flex items-center gap-0.5 text-xs font-medium text-green">
-            <Icon name="check_circle" filled className="text-base" />
-            Guardado
-          </span>
-        )}
       </div>
+    </div>
+  );
+}
+
+function SaveIndicator({
+  status,
+}: {
+  status: "idle" | "saving" | "saved" | "error";
+}) {
+  if (status === "idle") return null;
+  if (status === "saving") {
+    return (
+      <span className="flex items-center gap-1 text-xs font-medium text-text-2">
+        <Icon name="sync" className="text-base animate-spin" />
+        Guardando...
+      </span>
+    );
+  }
+  if (status === "saved") {
+    return (
+      <span className="flex items-center gap-1 text-xs font-medium text-green">
+        <Icon name="check_circle" filled className="text-base" />
+        Cambios guardados
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 text-xs font-medium text-red">
+      <Icon name="error" filled className="text-base" />
+      Error al guardar
+    </span>
+  );
+}
+
+function SaveToast({
+  status,
+}: {
+  status: "idle" | "saving" | "saved" | "error";
+}) {
+  if (status === "idle") return null;
+  const base =
+    "fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full px-5 py-2.5 shadow-lg pointer-events-none transition-opacity";
+  if (status === "saving") {
+    return (
+      <div className={`${base} bg-bg text-text border border-border`}>
+        <Icon name="sync" className="text-lg animate-spin" />
+        <span className="text-sm font-medium">Guardando...</span>
+      </div>
+    );
+  }
+  if (status === "saved") {
+    return (
+      <div className={`${base} bg-green text-bg`}>
+        <Icon name="check_circle" filled className="text-lg" />
+        <span className="text-sm font-medium">Guardado</span>
+      </div>
+    );
+  }
+  return (
+    <div className={`${base} bg-red text-bg`}>
+      <Icon name="error" filled className="text-lg" />
+      <span className="text-sm font-medium">Error al guardar</span>
     </div>
   );
 }

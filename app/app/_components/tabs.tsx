@@ -8,7 +8,11 @@ const ITEMS = [
   { href: "/app/medicamentos", label: "Meds", icon: "medication" },
   { href: "/app/citas", label: "Citas", icon: "event" },
   { href: "/app/finanzas", label: "Finanzas", icon: "payments" },
-  { href: "/app/referencias", label: "Pagos", icon: "receipt_long" },
+  {
+    href: "/app/referencias",
+    label: "Referencias de pago",
+    icon: "receipt_long",
+  },
 ];
 
 export function Tabs() {
@@ -29,7 +33,7 @@ export function Tabs() {
               <Link
                 href={t.href}
                 aria-current={active ? "page" : undefined}
-                className={`mx-auto flex w-full min-h-12 max-w-[80px] flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium leading-tight transition-colors ${
+                className={`mx-auto flex w-full min-h-12 max-w-[88px] flex-col items-center justify-center gap-0.5 rounded-2xl px-2 py-1 text-[10px] font-medium leading-tight transition-colors ${
                   active
                     ? "bg-green-bg text-green"
                     : "text-text-2 active:bg-bg-2"
@@ -40,7 +44,7 @@ export function Tabs() {
                   filled={active}
                   className="text-2xl"
                 />
-                <span className="truncate">{t.label}</span>
+                <span className="line-clamp-2 text-center">{t.label}</span>
               </Link>
             </li>
           );

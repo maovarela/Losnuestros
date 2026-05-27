@@ -4,6 +4,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
+import { Icon } from "../_components/icon";
+import { Pill } from "../_components/pill";
 
 const MESES = [
   "Enero",
@@ -42,6 +44,22 @@ const SERVICE_KEYS = [
   "alarma",
 ] as const;
 type ServiceKey = (typeof SERVICE_KEYS)[number];
+
+const SERVICE_LABELS: Record<ServiceKey, string> = {
+  compensar: "Compensar salud",
+  enel: "Energía Enel",
+  gas: "Gas Vanti",
+  agua: "Acueducto EAAB",
+  internet: "Claro internet",
+  celular: "Claro celular",
+  alarma: "Alarma",
+};
+
+function previousMonthKeyOf(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 const rtf = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 
@@ -169,6 +187,10 @@ export default function FinanzasPage() {
   const monthData = useQuery(api.financeMonths.getByMonth, {
     patientId,
     monthKey: selectedMonth,
+  });
+  const prevMonthData = useQuery(api.financeMonths.getByMonth, {
+    patientId,
+    monthKey: previousMonthKeyOf(selectedMonth),
   });
   const history = useQuery(api.financeMonths.listByPatient, { patientId });
   const audit = useQuery(api.financeMonths.listAuditByPatient, { patientId });
@@ -511,6 +533,18 @@ export default function FinanzasPage() {
           </div>
         )}
       </div>
+
+      <PreviousMonthStatus
+        prev={prevMonthData}
+        prevKey={previousMonthKeyOf(selectedMonth)}
+        onGoToMonth={(k) => setSelectedMonth(k)}
+        resolvePayerName={(id) => {
+          if (id === patientCaregiver?.id) return patientCaregiver.name;
+          if (id === caregiverId) return caregiverName;
+          const o = otherCaregivers.find((c) => c.id === id);
+          return o?.name ?? "?";
+        }}
+      />
 
       {balances && balances.some((b) => b.amount > 0) && (
         <div className="mt-4 rounded-xl border-l-4 border-amber bg-amber-bg p-4">
@@ -948,6 +982,147 @@ function SectionLabel({
       className={`text-xs font-medium uppercase tracking-wider text-text-3 ${className ?? ""}`}
     >
       {children}
+    </div>
+  );
+}
+
+type PrevMonth = {
+  month_key: string;
+  compensar: number;
+  compensar_paid_by?: Id<"caregivers">;
+  enel: number;
+  enel_paid_by?: Id<"caregivers">;
+  gas: number;
+  gas_paid_by?: Id<"caregivers">;
+  agua: number;
+  agua_paid_by?: Id<"caregivers">;
+  internet: number;
+  internet_paid_by?: Id<"caregivers">;
+  celular: number;
+  celular_paid_by?: Id<"caregivers">;
+  alarma: number;
+  alarma_paid_by?: Id<"caregivers">;
+};
+
+function PreviousMonthStatus({
+  prev,
+  prevKey,
+  onGoToMonth,
+  resolvePayerName,
+}: {
+  prev: PrevMonth | null | undefined;
+  prevKey: string;
+  onGoToMonth: (k: string) => void;
+  resolvePayerName: (id: Id<"caregivers">) => string;
+}) {
+  if (prev === undefined) return null;
+  const monthName = monthLabel(prevKey);
+
+  if (prev === null) {
+    return (
+      <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">Estado de {monthName}</h2>
+            <p className="mt-1 text-xs text-text-2">
+              No hay registro del mes anterior. Si lo recuerdas, ábrelo y
+              regístralo para no perder el rastro.
+            </p>
+          </div>
+          <button
+            onClick={() => onGoToMonth(prevKey)}
+            className="shrink-0 text-xs font-medium text-blue active:opacity-80 hover:opacity-85"
+          >
+            Abrir mes →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const rows = SERVICE_KEYS.map((s) => {
+    const amount = prev[s];
+    const paidBy = prev[`${s}_paid_by` as keyof PrevMonth] as
+      | Id<"caregivers">
+      | undefined;
+    return { key: s, label: SERVICE_LABELS[s], amount, paidBy };
+  });
+
+  const totalApplicable = rows.filter((r) => r.amount > 0).length;
+  const totalPaid = rows.filter((r) => r.amount > 0 && r.paidBy).length;
+  const allPaid = totalApplicable > 0 && totalPaid === totalApplicable;
+
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-bg p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold">
+              Estado de {monthName}
+            </h2>
+            {allPaid ? (
+              <Pill variant="success" icon="check_circle">
+                Todo pagado
+              </Pill>
+            ) : (
+              <Pill variant="warn" icon="schedule">
+                {totalPaid} de {totalApplicable}
+              </Pill>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-text-2">Mes anterior al seleccionado</p>
+        </div>
+        <button
+          onClick={() => onGoToMonth(prevKey)}
+          className="shrink-0 text-xs font-medium text-blue active:opacity-80 hover:opacity-85"
+        >
+          Abrir mes →
+        </button>
+      </div>
+      <ul className="mt-3 divide-y divide-border">
+        {rows.map((r) => {
+          if (r.amount === 0) {
+            return (
+              <li
+                key={r.key}
+                className="flex items-center gap-3 py-2 text-sm text-text-3"
+              >
+                <Icon name="remove" className="text-lg" />
+                <span className="flex-1">{r.label}</span>
+                <span className="text-xs">No aplica</span>
+              </li>
+            );
+          }
+          if (r.paidBy) {
+            return (
+              <li
+                key={r.key}
+                className="flex items-center gap-3 py-2 text-sm"
+              >
+                <Icon
+                  name="check_circle"
+                  filled
+                  className="text-lg text-green"
+                />
+                <span className="flex-1">{r.label}</span>
+                <span className="text-xs text-text-2">
+                  {resolvePayerName(r.paidBy)}
+                </span>
+              </li>
+            );
+          }
+          return (
+            <li
+              key={r.key}
+              className="flex items-center gap-3 py-2 text-sm text-amber"
+            >
+              <Icon name="schedule" className="text-lg" />
+              <span className="flex-1">{r.label}</span>
+              <span className="text-xs font-medium">Sin pagar</span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

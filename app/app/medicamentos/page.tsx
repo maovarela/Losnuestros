@@ -3,7 +3,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { useAppContext } from "@/lib/app-context";
 import { Icon } from "../_components/icon";
 import { Pill } from "../_components/pill";
@@ -52,47 +52,29 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+type MedDoc = Doc<"medications"> & {
+  updated_by_name?: string | null;
+  responsible_for_name?: string | null;
+};
+
 export default function MedicamentosPage() {
   const { patientId, caregiverId } = useAppContext();
   const meds = useQuery(api.medications.listByPatient, { patientId });
   const createMed = useMutation(api.medications.create);
-  const updateMed = useMutation(api.medications.update);
-  const removeMed = useMutation(api.medications.remove);
   const markRefilledMut = useMutation(api.medications.markRefilled);
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
     null,
   );
-  const [editingId, setEditingId] = useState<Id<"medications"> | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [refilling, setRefilling] = useState<Id<"medications"> | null>(null);
   const [savedFlag, setSavedFlag] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const searchParams = useSearchParams();
-  const handledEditRef = useRef(false);
-
-  useEffect(() => {
-    if (handledEditRef.current) return;
-    const editId = searchParams.get("edit");
-    if (!editId || !meds) return;
-    const target = meds.find((m) => m._id === editId);
-    if (!target) return;
-    handledEditRef.current = true;
-    setEditingId(target._id);
-    setForm({
-      name: target.name,
-      dosage: target.dosage ?? "",
-      doctor: target.doctor ?? "",
-      last_refill: target.last_refill ?? "",
-      next_refill: target.next_refill ?? "",
-      notes: target.notes ?? "",
-    });
-    setResponsibleFor(target.responsible_for ?? null);
-    setNameError(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [searchParams, meds]);
+  const editIdFromUrl = searchParams.get("edit");
 
   useEffect(() => {
     if (!savedFlag) return;
@@ -111,28 +93,6 @@ export default function MedicamentosPage() {
     return { vencidos, proximos };
   }, [meds]);
 
-  function startEdit(med: NonNullable<typeof meds>[number]) {
-    setEditingId(med._id);
-    setForm({
-      name: med.name,
-      dosage: med.dosage ?? "",
-      doctor: med.doctor ?? "",
-      last_refill: med.last_refill ?? "",
-      next_refill: med.next_refill ?? "",
-      notes: med.notes ?? "",
-    });
-    setResponsibleFor(med.responsible_for ?? null);
-    setNameError(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setResponsibleFor(null);
-    setNameError(null);
-  }
-
   async function handleMarkRefilled(id: Id<"medications">) {
     setRefilling(id);
     try {
@@ -142,7 +102,7 @@ export default function MedicamentosPage() {
     }
   }
 
-  async function handleSave() {
+  async function handleCreate() {
     if (!form.name.trim()) {
       setNameError("Necesitamos un nombre para guardarlo");
       return;
@@ -150,7 +110,8 @@ export default function MedicamentosPage() {
     setNameError(null);
     setSaving(true);
     try {
-      const payload = {
+      await createMed({
+        patientId,
         name: form.name.trim(),
         dosage: form.dosage.trim() || undefined,
         doctor: form.doctor.trim() || undefined,
@@ -159,26 +120,14 @@ export default function MedicamentosPage() {
         notes: form.notes.trim() || undefined,
         updatedBy: caregiverId,
         responsibleFor: responsibleFor ?? undefined,
-      };
-      if (editingId) {
-        await updateMed({ id: editingId, ...payload });
-      } else {
-        await createMed({ patientId, ...payload });
-      }
-      cancelEdit();
+      });
+      setForm(EMPTY_FORM);
+      setResponsibleFor(null);
+      setShowAddForm(false);
       setSavedFlag(true);
     } finally {
       setSaving(false);
     }
-  }
-
-  async function handleDelete(id: Id<"medications">, name: string) {
-    const ok = window.confirm(
-      `Vas a quitar "${name}" de la lista de medicamentos. ¿Continuar?`,
-    );
-    if (!ok) return;
-    await removeMed({ id });
-    if (editingId === id) cancelEdit();
   }
 
   return (
@@ -244,228 +193,452 @@ export default function MedicamentosPage() {
         </div>
       )}
 
-      <div className="mt-6 rounded-xl border border-border bg-bg p-4">
-        <div className="text-sm font-medium">
-          {editingId ? "Editar medicamento" : "Agregar medicamento"}
-        </div>
-        <div className="mt-3 space-y-3">
-          <div>
-            <label className="block text-xs text-text-2" htmlFor="med-name">
-              Nombre
-            </label>
-            <input
-              id="med-name"
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Ej: Atorvastatina 40mg"
-              className={`mt-1 w-full rounded-md border bg-bg-2 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${nameError ? "border-red" : "border-border-2 focus:border-blue"}`}
-            />
-            {nameError && (
-              <div className="mt-1 text-xs text-red">{nameError}</div>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs text-text-2">Dosis</label>
-            <input
-              type="text"
-              value={form.dosage}
-              onChange={(e) => setForm({ ...form, dosage: e.target.value })}
-              placeholder="Ej: 1 tableta cada 24 horas"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-text-2">Médico</label>
-            <input
-              type="text"
-              value={form.doctor}
-              onChange={(e) => setForm({ ...form, doctor: e.target.value })}
-              placeholder="Ej: Dr. Bastidas, Medicina Familiar"
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-text-2">Último refill</label>
-              <input
-                type="date"
-                value={form.last_refill}
-                onChange={(e) => setForm({ ...form, last_refill: e.target.value })}
-                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-text-2">Próximo refill</label>
-              <input
-                type="date"
-                value={form.next_refill}
-                onChange={(e) => setForm({ ...form, next_refill: e.target.value })}
-                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs text-text-2">Notas</label>
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Ej: Tomar con comida"
-              rows={2}
-              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
-            />
-          </div>
-          <WhoDidIt
-            value={responsibleFor}
-            onChange={setResponsibleFor}
-            label="¿Quién hizo el refill?"
-          />
-        </div>
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-          {savedFlag && (
-            <div className="mr-auto text-xs text-green">Cambios guardados</div>
-          )}
-          {editingId && (
-            <button
-              onClick={cancelEdit}
-              className="min-h-11 rounded-md border border-border-2 bg-bg px-4 py-2 text-sm hover:bg-bg-2 active:bg-bg-2"
-            >
-              Cancelar
-            </button>
-          )}
+      <div className="mt-6 flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Medicamentos</h2>
+        {!showAddForm && (
           <button
-            onClick={handleSave}
-            disabled={saving}
-            className="min-h-11 rounded-md bg-blue px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-1 min-h-9 rounded-md bg-blue px-3 py-1.5 text-sm font-medium text-bg active:opacity-80 hover:opacity-85"
           >
-            {saving ? "Guardando..." : editingId ? "Guardar cambios" : "Agregar"}
+            <Icon name="add" className="text-base" />
+            Agregar
           </button>
-        </div>
+        )}
       </div>
 
-      <div className="mt-6">
-        <h2 className="mb-3 text-xl font-semibold">Medicamentos</h2>
+      {showAddForm && (
+        <div className="mt-3 rounded-xl border border-l-4 border-blue-border border-l-blue bg-bg p-4">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-base font-bold">Agregar medicamento</h3>
+            <button
+              onClick={() => {
+                setShowAddForm(false);
+                setForm(EMPTY_FORM);
+                setResponsibleFor(null);
+                setNameError(null);
+              }}
+              aria-label="Cancelar"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-text-2 active:bg-bg-2 hover:bg-bg-2"
+            >
+              <Icon name="close" className="text-xl" />
+            </button>
+          </div>
+          <div className="mt-3 space-y-3">
+            <div>
+              <label className="block text-xs text-text-2" htmlFor="med-name">
+                Nombre
+              </label>
+              <input
+                id="med-name"
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Ej: Atorvastatina 40mg"
+                className={`mt-1 w-full rounded-md border bg-bg-2 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${nameError ? "border-red" : "border-border-2 focus:border-blue"}`}
+              />
+              {nameError && (
+                <div className="mt-1 text-xs text-red">{nameError}</div>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs text-text-2">Dosis</label>
+              <input
+                type="text"
+                value={form.dosage}
+                onChange={(e) => setForm({ ...form, dosage: e.target.value })}
+                placeholder="Ej: 1 tableta cada 24 horas"
+                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-text-2">Médico</label>
+              <input
+                type="text"
+                value={form.doctor}
+                onChange={(e) => setForm({ ...form, doctor: e.target.value })}
+                placeholder="Ej: Dr. Bastidas, Medicina Familiar"
+                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-text-2">Último refill</label>
+                <input
+                  type="date"
+                  value={form.last_refill}
+                  onChange={(e) =>
+                    setForm({ ...form, last_refill: e.target.value })
+                  }
+                  className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-text-2">Próximo refill</label>
+                <input
+                  type="date"
+                  value={form.next_refill}
+                  onChange={(e) =>
+                    setForm({ ...form, next_refill: e.target.value })
+                  }
+                  className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-text-2">Notas</label>
+              <textarea
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                placeholder="Ej: Tomar con comida"
+                rows={2}
+                className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+              />
+            </div>
+            <WhoDidIt
+              value={responsibleFor}
+              onChange={setResponsibleFor}
+              label="¿Quién hizo el refill?"
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+            {savedFlag && (
+              <div className="mr-auto text-xs text-green">Cambios guardados</div>
+            )}
+            <button
+              onClick={handleCreate}
+              disabled={saving}
+              className="min-h-11 rounded-md bg-blue px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+            >
+              {saving ? "Guardando..." : "Agregar"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3">
         {meds === undefined && (
           <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
             Cargando...
           </div>
         )}
-        {meds && meds.length === 0 && (
+        {meds && meds.length === 0 && !showAddForm && (
           <div className="rounded-xl border border-border bg-bg p-6 text-center text-sm text-text-2">
-            Aún no hay medicamentos. Agrega el primero usando el formulario de arriba.
+            Aún no hay medicamentos. Toca "Agregar" arriba para crear el primero.
           </div>
         )}
         {meds && meds.length > 0 && (
           <div className="space-y-3">
-            {meds.map((m) => {
-              const d = m.next_refill ? daysUntil(m.next_refill) : null;
-              const badge =
-                d === null
-                  ? null
-                  : d < 0
-                    ? {
-                        text: "Vencido",
-                        variant: "danger" as const,
-                        icon: "error",
-                      }
-                    : d <= 7
-                      ? {
-                          text: `En ${d} día${d === 1 ? "" : "s"}`,
-                          variant: "warn" as const,
-                          icon: "schedule",
-                        }
-                      : {
-                          text: `Refill ${fmtDate(m.next_refill!)}`,
-                          variant: "success" as const,
-                          icon: "check_circle",
-                        };
-              const showAttribution = !!m.updated_by;
-              return (
-                <div
-                  key={m._id}
-                  className="rounded-xl border border-l-4 border-border border-l-blue bg-bg p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      aria-hidden="true"
-                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-bg text-blue"
-                    >
-                      <Icon name="medication" filled className="text-3xl" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-base font-bold leading-tight">
-                          {m.name}
-                        </h3>
-                        {badge && (
-                          <Pill variant={badge.variant} icon={badge.icon}>
-                            {badge.text}
-                          </Pill>
-                        )}
-                      </div>
-                      {m.dosage && (
-                        <div className="mt-1 text-sm text-text-2">
-                          {m.dosage}
-                        </div>
-                      )}
-                      {m.doctor && (
-                        <div className="text-sm text-text-2">{m.doctor}</div>
-                      )}
-                      {m.last_refill && (
-                        <div className="mt-1 text-xs text-text-3">
-                          Último refill: {fmtDate(m.last_refill)}
-                        </div>
-                      )}
-                      {m.notes && (
-                        <div className="mt-1 text-sm italic text-text-2">
-                          {m.notes}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
-                    {showAttribution ? (
-                      <div className="text-xs text-text-2">
-                        {m.responsible_for_name &&
-                        m.responsible_for !== m.updated_by ? (
-                          <>
-                            Lo registró {m.updated_by_name} · lo hizo{" "}
-                            <span className="font-medium text-text">
-                              {m.responsible_for_name}
-                            </span>{" "}
-                            {relativeTime(m.updated_at)}
-                          </>
-                        ) : (
-                          <>
-                            Lo actualizó {m.updated_by_name}{" "}
-                            {relativeTime(m.updated_at)}
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex-1" />
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => startEdit(m)}
-                        className="min-h-9 rounded-md border border-border-2 px-3 py-1.5 text-xs font-medium text-text hover:bg-bg-2 active:bg-bg-2"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(m._id, m.name)}
-                        className="min-h-9 rounded-md border border-red-border px-3 py-1.5 text-xs font-medium text-red hover:bg-red-bg active:bg-red-bg"
-                      >
-                        Borrar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {meds.map((m) => (
+              <MedCard
+                key={m._id}
+                m={m as MedDoc}
+                caregiverId={caregiverId}
+                defaultEditing={editIdFromUrl === m._id}
+              />
+            ))}
           </div>
         )}
       </div>
     </main>
+  );
+}
+
+function MedCard({
+  m,
+  caregiverId,
+  defaultEditing,
+}: {
+  m: MedDoc;
+  caregiverId: Id<"caregivers">;
+  defaultEditing?: boolean;
+}) {
+  const [editing, setEditing] = useState(defaultEditing ?? false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const handledDefaultRef = useRef(false);
+
+  useEffect(() => {
+    if (defaultEditing && !handledDefaultRef.current && cardRef.current) {
+      handledDefaultRef.current = true;
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [defaultEditing]);
+
+  if (editing) {
+    return (
+      <div ref={cardRef}>
+        <MedEditForm
+          m={m}
+          caregiverId={caregiverId}
+          onClose={() => setEditing(false)}
+        />
+      </div>
+    );
+  }
+
+  const d = m.next_refill ? daysUntil(m.next_refill) : null;
+  const badge =
+    d === null
+      ? null
+      : d < 0
+        ? {
+            text: "Vencido",
+            variant: "danger" as const,
+            icon: "error",
+          }
+        : d <= 7
+          ? {
+              text: `En ${d} día${d === 1 ? "" : "s"}`,
+              variant: "warn" as const,
+              icon: "schedule",
+            }
+          : {
+              text: `Refill ${fmtDate(m.next_refill!)}`,
+              variant: "success" as const,
+              icon: "check_circle",
+            };
+  const showAttribution = !!m.updated_by;
+
+  return (
+    <div
+      ref={cardRef}
+      className="rounded-xl border border-l-4 border-border border-l-blue bg-bg p-4"
+    >
+      <div className="flex items-start gap-3">
+        <div
+          aria-hidden="true"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-bg text-blue"
+        >
+          <Icon name="medication" filled className="text-3xl" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-base font-bold leading-tight">{m.name}</h3>
+            {badge && (
+              <Pill variant={badge.variant} icon={badge.icon}>
+                {badge.text}
+              </Pill>
+            )}
+          </div>
+          {m.dosage && (
+            <div className="mt-1 text-sm text-text-2">{m.dosage}</div>
+          )}
+          {m.doctor && <div className="text-sm text-text-2">{m.doctor}</div>}
+          {m.last_refill && (
+            <div className="mt-1 text-xs text-text-3">
+              Último refill: {fmtDate(m.last_refill)}
+            </div>
+          )}
+          {m.notes && (
+            <div className="mt-1 text-sm italic text-text-2">{m.notes}</div>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+        {showAttribution ? (
+          <div className="text-xs text-text-2">
+            {m.responsible_for_name &&
+            m.responsible_for !== m.updated_by ? (
+              <>
+                Lo registró {m.updated_by_name} · lo hizo{" "}
+                <span className="font-medium text-text">
+                  {m.responsible_for_name}
+                </span>{" "}
+                {relativeTime(m.updated_at)}
+              </>
+            ) : (
+              <>
+                Lo actualizó {m.updated_by_name} {relativeTime(m.updated_at)}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setEditing(true)}
+            className="min-h-9 rounded-md border border-border-2 px-3 py-1.5 text-xs font-medium text-text hover:bg-bg-2 active:bg-bg-2"
+          >
+            Editar
+          </button>
+          <DeleteMedButton id={m._id} name={m.name} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteMedButton({
+  id,
+  name,
+}: {
+  id: Id<"medications">;
+  name: string;
+}) {
+  const removeMed = useMutation(api.medications.remove);
+  async function handleDelete() {
+    const ok = window.confirm(
+      `Vas a quitar "${name}" de la lista de medicamentos. ¿Continuar?`,
+    );
+    if (!ok) return;
+    await removeMed({ id });
+  }
+  return (
+    <button
+      onClick={handleDelete}
+      className="min-h-9 rounded-md border border-red-border px-3 py-1.5 text-xs font-medium text-red hover:bg-red-bg active:bg-red-bg"
+    >
+      Borrar
+    </button>
+  );
+}
+
+function MedEditForm({
+  m,
+  caregiverId,
+  onClose,
+}: {
+  m: MedDoc;
+  caregiverId: Id<"caregivers">;
+  onClose: () => void;
+}) {
+  const updateMed = useMutation(api.medications.update);
+  const [form, setForm] = useState<FormState>({
+    name: m.name,
+    dosage: m.dosage ?? "",
+    doctor: m.doctor ?? "",
+    last_refill: m.last_refill ?? "",
+    next_refill: m.next_refill ?? "",
+    notes: m.notes ?? "",
+  });
+  const [responsibleFor, setResponsibleFor] = useState<Id<"caregivers"> | null>(
+    m.responsible_for ?? null,
+  );
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!form.name.trim()) {
+      setNameError("Necesitamos un nombre para guardarlo");
+      return;
+    }
+    setNameError(null);
+    setSaving(true);
+    try {
+      await updateMed({
+        id: m._id,
+        name: form.name.trim(),
+        dosage: form.dosage.trim() || undefined,
+        doctor: form.doctor.trim() || undefined,
+        last_refill: form.last_refill || undefined,
+        next_refill: form.next_refill || undefined,
+        notes: form.notes.trim() || undefined,
+        updatedBy: caregiverId,
+        responsibleFor: responsibleFor ?? undefined,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-l-4 border-blue-border border-l-blue bg-bg p-4">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-base font-bold">Editar medicamento</h3>
+        <button
+          onClick={onClose}
+          aria-label="Cancelar"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-text-2 active:bg-bg-2 hover:bg-bg-2"
+        >
+          <Icon name="close" className="text-xl" />
+        </button>
+      </div>
+      <div className="mt-3 space-y-3">
+        <div>
+          <label className="block text-xs text-text-2">Nombre</label>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className={`mt-1 w-full rounded-md border bg-bg-2 px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue ${nameError ? "border-red" : "border-border-2 focus:border-blue"}`}
+          />
+          {nameError && (
+            <div className="mt-1 text-xs text-red">{nameError}</div>
+          )}
+        </div>
+        <div>
+          <label className="block text-xs text-text-2">Dosis</label>
+          <input
+            type="text"
+            value={form.dosage}
+            onChange={(e) => setForm({ ...form, dosage: e.target.value })}
+            className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-text-2">Médico</label>
+          <input
+            type="text"
+            value={form.doctor}
+            onChange={(e) => setForm({ ...form, doctor: e.target.value })}
+            className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-text-2">Último refill</label>
+            <input
+              type="date"
+              value={form.last_refill}
+              onChange={(e) =>
+                setForm({ ...form, last_refill: e.target.value })
+              }
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-text-2">Próximo refill</label>
+            <input
+              type="date"
+              value={form.next_refill}
+              onChange={(e) =>
+                setForm({ ...form, next_refill: e.target.value })
+              }
+              className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-text-2">Notas</label>
+          <textarea
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            rows={2}
+            className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+          />
+        </div>
+        <WhoDidIt
+          value={responsibleFor}
+          onChange={setResponsibleFor}
+          label="¿Quién hizo el refill?"
+        />
+      </div>
+      <div className="mt-4 flex items-center justify-end gap-2">
+        <button
+          onClick={onClose}
+          className="min-h-11 rounded-md border border-border-2 bg-bg px-4 py-2 text-sm hover:bg-bg-2 active:bg-bg-2"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="min-h-11 rounded-md bg-blue px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
+        >
+          {saving ? "Guardando..." : "Guardar"}
+        </button>
+      </div>
+    </div>
   );
 }

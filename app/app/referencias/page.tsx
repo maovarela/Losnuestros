@@ -318,24 +318,28 @@ function StatusBlock({
 
   if (current && current.amount > 0) {
     const paidByName = current.paidBy ? resolvePayer(current.paidBy) : null;
-    return (
-      <div className="mt-2">
-        {paidByName ? (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-green">
-            <Icon name="check_circle" filled className="text-base" />
-            <span>
-              {thisMonthLabel}: pagado por {paidByName}
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-amber">
-            <Icon name="schedule" className="text-base" />
-            <span>{thisMonthLabel}: sin pagar</span>
-          </div>
-        )}
-        <div className="mt-0.5 text-lg font-medium tabular-nums">
-          {fmtCOP(current.amount)}
+    if (paidByName) {
+      return (
+        <div className="mt-1.5 flex items-center gap-1.5 text-sm text-text-2">
+          <Icon name="check_circle" filled className="text-base text-green" />
+          <span>
+            <span className="font-medium tabular-nums text-text">
+              {fmtCOP(current.amount)}
+            </span>{" "}
+            pagados en {thisMonthLabel.toLowerCase()} por {paidByName}
+          </span>
         </div>
+      );
+    }
+    return (
+      <div className="mt-1.5 flex items-center gap-1.5 text-sm text-text-2">
+        <Icon name="schedule" className="text-base text-amber" />
+        <span>
+          {thisMonthLabel}: sin pagar ·{" "}
+          <span className="font-medium tabular-nums text-text">
+            {fmtCOP(current.amount)}
+          </span>
+        </span>
       </div>
     );
   }
@@ -343,20 +347,18 @@ function StatusBlock({
   if (last) {
     const paidByName = last.paidBy ? resolvePayer(last.paidBy) : null;
     return (
-      <div className="mt-2">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-text-2">
+      <div className="mt-1.5 space-y-0.5">
+        <div className="flex items-center gap-1.5 text-sm text-amber">
           <Icon name="schedule" className="text-base" />
-          <span>{thisMonthLabel}: sin registrar todavía</span>
+          <span>{thisMonthLabel}: sin registrar</span>
         </div>
-        <div className="mt-0.5 text-sm text-text-2">
+        <div className="text-xs text-text-3">
           Última factura:{" "}
-          <span className="font-medium text-text tabular-nums">
+          <span className="font-medium tabular-nums">
             {fmtCOP(last.amount)}
-          </span>
-          <span className="ml-1 text-xs text-text-3">
-            ({shortMonthLabel(last.monthKey)}
-            {paidByName ? ` · ${paidByName}` : ""})
-          </span>
+          </span>{" "}
+          ({shortMonthLabel(last.monthKey).toLowerCase()}
+          {paidByName ? `, ${paidByName}` : ""})
         </div>
       </div>
     );
@@ -364,7 +366,7 @@ function StatusBlock({
 
   if (fallbackLabel || fallbackAmount) {
     return (
-      <div className="mt-2 text-sm text-text-2">
+      <div className="mt-1.5 text-xs text-text-3">
         Valor de referencia:{" "}
         <span className="font-medium text-text tabular-nums">
           {fallbackLabel ?? fmtCOP(fallbackAmount!)}

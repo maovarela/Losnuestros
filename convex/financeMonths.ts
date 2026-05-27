@@ -479,9 +479,11 @@ export const setServicePayer = mutation({
       v.literal("alarma"),
     ),
     paidBy: v.optional(v.id("caregivers")),
+    amount: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const field = PAID_BY_FIELD[args.service];
+    const amountField = args.service;
     const existing = await ctx.db
       .query("finance_months")
       .withIndex("by_patient_month", (q) =>
@@ -511,33 +513,41 @@ export const setServicePayer = mutation({
       before = (existing as unknown as Record<string, unknown>)[field] as
         | Id<"caregivers">
         | undefined;
-      await ctx.db.patch(existing._id, {
+      const patch: Record<string, unknown> = {
         [field]: args.paidBy,
         updated_by: args.updatedBy,
         updated_at: now,
-      });
+      };
+      if (args.amount !== undefined) {
+        patch[amountField] = args.amount;
+      }
+      await ctx.db.patch(existing._id, patch);
       resultId = existing._id;
     } else {
+      const useAmount = (s: typeof args.service): number =>
+        args.service === s && args.amount !== undefined
+          ? args.amount
+          : DEFAULTS[s];
       resultId = await ctx.db.insert("finance_months", {
         patient_id: args.patientId,
         month_key: args.monthKey,
         pension: DEFAULTS.pension,
-        compensar: DEFAULTS.compensar,
+        compensar: useAmount("compensar"),
         compensar_paid_by:
           args.service === "compensar" ? args.paidBy : undefined,
-        enel: DEFAULTS.enel,
+        enel: useAmount("enel"),
         enel_paid_by: args.service === "enel" ? args.paidBy : undefined,
-        gas: DEFAULTS.gas,
+        gas: useAmount("gas"),
         gas_paid_by: args.service === "gas" ? args.paidBy : undefined,
-        agua: DEFAULTS.agua,
+        agua: useAmount("agua"),
         agua_paid_by: args.service === "agua" ? args.paidBy : undefined,
-        internet: DEFAULTS.internet,
+        internet: useAmount("internet"),
         internet_paid_by:
           args.service === "internet" ? args.paidBy : undefined,
-        celular: DEFAULTS.celular,
+        celular: useAmount("celular"),
         celular_paid_by:
           args.service === "celular" ? args.paidBy : undefined,
-        alarma: DEFAULTS.alarma,
+        alarma: useAmount("alarma"),
         alarma_paid_by: args.service === "alarma" ? args.paidBy : undefined,
         empleada: DEFAULTS.empleada,
         caja: DEFAULTS.caja,

@@ -312,6 +312,7 @@ export default function FinanzasPage() {
     service: ServiceKey,
     paidBy: PayerId,
   ) {
+    const amount = num(form[service]);
     setForm((f) => ({ ...f, [`${service}_paid_by`]: paidBy }) as FormState);
     setPayerJustSaved(service);
     await setServicePayer({
@@ -320,6 +321,7 @@ export default function FinanzasPage() {
       monthKey: selectedMonth,
       service,
       paidBy: paidBy ?? undefined,
+      amount,
     });
     setTimeout(() => setPayerJustSaved(null), 1500);
   }
@@ -783,13 +785,29 @@ export default function FinanzasPage() {
           />
         </div>
 
-        <div className="mt-4 rounded-md border border-border-2 bg-bg-2 p-3 text-xs text-text-2">
-          <Icon
-            name="info"
-            className="mr-1 align-middle text-base text-text-3"
-          />
-          Los pagos se guardan al toque cuando seleccionas quién pagó. Acá
-          guardas los montos y el saldo cuando termines de escribirlos.
+        <div className="mt-4 rounded-md border border-border-2 bg-bg-2 p-3 text-xs text-text-2 space-y-1.5">
+          <div className="flex items-start gap-2">
+            <Icon
+              name="check_circle"
+              filled
+              className="mt-0.5 shrink-0 text-base text-green"
+            />
+            <span>
+              <strong>Cada servicio de arriba (Compensar, Enel, etc.):</strong>{" "}
+              cuando tocas quien pagó, se guarda el monto y el pagador al
+              instante.
+            </span>
+          </div>
+          <div className="flex items-start gap-2">
+            <Icon
+              name="edit"
+              className="mt-0.5 shrink-0 text-base text-blue"
+            />
+            <span>
+              <strong>Pensión, gastos del hogar, saldo y nota:</strong>{" "}
+              escríbelos y luego toca el botón de abajo.
+            </span>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-end gap-2">

@@ -464,6 +464,146 @@ export const markServicePaid = mutation({
   },
 });
 
+export const setServicePayer = mutation({
+  args: {
+    patientId: v.id("patients"),
+    updatedBy: v.id("caregivers"),
+    monthKey: v.string(),
+    service: v.union(
+      v.literal("compensar"),
+      v.literal("enel"),
+      v.literal("gas"),
+      v.literal("agua"),
+      v.literal("internet"),
+      v.literal("celular"),
+      v.literal("alarma"),
+    ),
+    paidBy: v.optional(v.id("caregivers")),
+  },
+  handler: async (ctx, args) => {
+    const field = PAID_BY_FIELD[args.service];
+    const existing = await ctx.db
+      .query("finance_months")
+      .withIndex("by_patient_month", (q) =>
+        q.eq("patient_id", args.patientId).eq("month_key", args.monthKey),
+      )
+      .first();
+
+    const now = Date.now();
+    const actorName = await resolveActorName(ctx, args.updatedBy);
+    const patientCaregiverId = await findPatientCaregiverId(
+      ctx,
+      args.patientId,
+    );
+    const serviceLabel = {
+      compensar: "Compensar",
+      enel: "Enel",
+      gas: "Gas",
+      agua: "Agua",
+      internet: "Internet",
+      celular: "Celular",
+      alarma: "Alarma",
+    }[args.service];
+
+    let resultId: Id<"finance_months">;
+    let before: Id<"caregivers"> | undefined;
+    if (existing) {
+      before = (existing as unknown as Record<string, unknown>)[field] as
+        | Id<"caregivers">
+        | undefined;
+      await ctx.db.patch(existing._id, {
+        [field]: args.paidBy,
+        updated_by: args.updatedBy,
+        updated_at: now,
+      });
+      resultId = existing._id;
+    } else {
+      resultId = await ctx.db.insert("finance_months", {
+        patient_id: args.patientId,
+        month_key: args.monthKey,
+        pension: DEFAULTS.pension,
+        compensar: DEFAULTS.compensar,
+        compensar_paid_by:
+          args.service === "compensar" ? args.paidBy : undefined,
+        enel: DEFAULTS.enel,
+        enel_paid_by: args.service === "enel" ? args.paidBy : undefined,
+        gas: DEFAULTS.gas,
+        gas_paid_by: args.service === "gas" ? args.paidBy : undefined,
+        agua: DEFAULTS.agua,
+        agua_paid_by: args.service === "agua" ? args.paidBy : undefined,
+        internet: DEFAULTS.internet,
+        internet_paid_by:
+          args.service === "internet" ? args.paidBy : undefined,
+        celular: DEFAULTS.celular,
+        celular_paid_by:
+          args.service === "celular" ? args.paidBy : undefined,
+        alarma: DEFAULTS.alarma,
+        alarma_paid_by: args.service === "alarma" ? args.paidBy : undefined,
+        empleada: DEFAULTS.empleada,
+        caja: DEFAULTS.caja,
+        mercado: DEFAULTS.mercado,
+        varios: DEFAULTS.varios,
+        updated_by: args.updatedBy,
+        updated_at: now,
+      });
+    }
+
+    const wasUnset = before === undefined || before === null;
+    const isUnset = args.paidBy === undefined || args.paidBy === null;
+
+    if (wasUnset && !isUnset) {
+      await ctx.db.insert("finance_audit", {
+        patient_id: args.patientId,
+        month_key: args.monthKey,
+        action: "paid",
+        detail: `Marcó ${serviceLabel} como pagado`,
+        actor_id: args.updatedBy,
+        actor_name: actorName,
+        at: now,
+      });
+      let responsibleName: string | undefined;
+      if (
+        args.paidBy &&
+        args.paidBy !== args.updatedBy &&
+        args.paidBy !== patientCaregiverId
+      ) {
+        const r = await ctx.db.get(args.paidBy);
+        responsibleName = r?.name;
+      }
+      await ctx.scheduler.runAfter(0, internal.email.sendChangeAlert, {
+        patientId: args.patientId,
+        actorId: args.updatedBy,
+        eventType: "payment",
+        detail: serviceLabel,
+        responsibleName,
+      });
+    } else if (!wasUnset && isUnset) {
+      await ctx.db.insert("finance_audit", {
+        patient_id: args.patientId,
+        month_key: args.monthKey,
+        action: "unpaid",
+        detail: `Desmarcó ${serviceLabel} como pagado`,
+        actor_id: args.updatedBy,
+        actor_name: actorName,
+        at: now,
+      });
+    } else if (!wasUnset && !isUnset && before !== args.paidBy) {
+      const newPayer = args.paidBy ? await ctx.db.get(args.paidBy) : null;
+      await ctx.db.insert("finance_audit", {
+        patient_id: args.patientId,
+        month_key: args.monthKey,
+        action: "payer_changed",
+        detail: `Cambió pagador de ${serviceLabel} a ${newPayer?.name ?? "alguien"}`,
+        actor_id: args.updatedBy,
+        actor_name: actorName,
+        at: now,
+      });
+    }
+
+    return resultId;
+  },
+});
+
 export const backfillPaidBy = mutation({
   args: { patientId: v.id("patients") },
   handler: async (ctx, args) => {

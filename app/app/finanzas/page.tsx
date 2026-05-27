@@ -201,6 +201,14 @@ export default function FinanzasPage() {
   const upsert = useMutation(api.financeMonths.upsert);
   const remove = useMutation(api.financeMonths.remove);
   const settle = useMutation(api.financeMonths.settle);
+  const setServicePayer = useMutation(api.financeMonths.setServicePayer);
+  const [payerJustSaved, setPayerJustSaved] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  function updateForm(updates: Partial<FormState>) {
+    setForm((f) => ({ ...f, ...updates }));
+    setDirty(true);
+  }
 
   useEffect(() => {
     if (!savedFlag) return;
@@ -226,6 +234,7 @@ export default function FinanzasPage() {
 
     if (monthData === null) {
       setForm(emptyForm());
+      setDirty(false);
       return;
     }
 
@@ -253,6 +262,7 @@ export default function FinanzasPage() {
       saldo_banco: monthData.saldo_banco ? String(monthData.saldo_banco) : "",
       nota: monthData.nota ?? "",
     });
+    setDirty(false);
   }, [monthData, selectedMonth]);
 
   const totals = useMemo(() => {
@@ -298,6 +308,22 @@ export default function FinanzasPage() {
     };
   }, [form, previousMonthSaldo, patientCaregiver, settlements, selectedMonth]);
 
+  async function handlePayerChange(
+    service: ServiceKey,
+    paidBy: PayerId,
+  ) {
+    setForm((f) => ({ ...f, [`${service}_paid_by`]: paidBy }) as FormState);
+    setPayerJustSaved(service);
+    await setServicePayer({
+      patientId,
+      updatedBy: caregiverId,
+      monthKey: selectedMonth,
+      service,
+      paidBy: paidBy ?? undefined,
+    });
+    setTimeout(() => setPayerJustSaved(null), 1500);
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -329,6 +355,7 @@ export default function FinanzasPage() {
         nota: form.nota.trim() || undefined,
       });
       setSavedFlag(true);
+      setDirty(false);
     } finally {
       setSaving(false);
     }
@@ -593,12 +620,12 @@ export default function FinanzasPage() {
           <MoneyRow
             label="Pensión recibida"
             value={form.pension}
-            onChange={(v) => setForm({ ...form, pension: v })}
+            onChange={(v) => updateForm({ pension: v })}
           />
           <MoneyRow
             label="Prima (junio o diciembre)"
             value={form.prima}
-            onChange={(v) => setForm({ ...form, prima: v })}
+            onChange={(v) => updateForm({ prima: v })}
             placeholder="0"
           />
         </div>
@@ -613,57 +640,64 @@ export default function FinanzasPage() {
             label="Compensar salud"
             value={form.compensar}
             paidBy={form.compensar_paid_by}
-            onChange={(v) => setForm({ ...form, compensar: v })}
-            onPaidBy={(p) => setForm({ ...form, compensar_paid_by: p })}
+            onChange={(v) => updateForm({ compensar: v })}
+            onPaidBy={(p) => handlePayerChange("compensar", p)}
             options={payerOptions}
+            justSaved={payerJustSaved === "compensar"}
           />
           <PayerRow
             label="Energía Enel"
             value={form.enel}
             paidBy={form.enel_paid_by}
-            onChange={(v) => setForm({ ...form, enel: v })}
-            onPaidBy={(p) => setForm({ ...form, enel_paid_by: p })}
+            onChange={(v) => updateForm({ enel: v })}
+            onPaidBy={(p) => handlePayerChange("enel", p)}
             options={payerOptions}
+            justSaved={payerJustSaved === "enel"}
           />
           <PayerRow
             label="Gas Vanti"
             value={form.gas}
             paidBy={form.gas_paid_by}
-            onChange={(v) => setForm({ ...form, gas: v })}
-            onPaidBy={(p) => setForm({ ...form, gas_paid_by: p })}
+            onChange={(v) => updateForm({ gas: v })}
+            onPaidBy={(p) => handlePayerChange("gas", p)}
             options={payerOptions}
+            justSaved={payerJustSaved === "gas"}
           />
           <PayerRow
             label="Acueducto EAAB"
             value={form.agua}
             paidBy={form.agua_paid_by}
-            onChange={(v) => setForm({ ...form, agua: v })}
-            onPaidBy={(p) => setForm({ ...form, agua_paid_by: p })}
+            onChange={(v) => updateForm({ agua: v })}
+            onPaidBy={(p) => handlePayerChange("agua", p)}
             options={payerOptions}
+            justSaved={payerJustSaved === "agua"}
           />
           <PayerRow
             label="Claro internet"
             value={form.internet}
             paidBy={form.internet_paid_by}
-            onChange={(v) => setForm({ ...form, internet: v })}
-            onPaidBy={(p) => setForm({ ...form, internet_paid_by: p })}
+            onChange={(v) => updateForm({ internet: v })}
+            onPaidBy={(p) => handlePayerChange("internet", p)}
             options={payerOptions}
+            justSaved={payerJustSaved === "internet"}
           />
           <PayerRow
             label="Claro celular"
             value={form.celular}
             paidBy={form.celular_paid_by}
-            onChange={(v) => setForm({ ...form, celular: v })}
-            onPaidBy={(p) => setForm({ ...form, celular_paid_by: p })}
+            onChange={(v) => updateForm({ celular: v })}
+            onPaidBy={(p) => handlePayerChange("celular", p)}
             options={payerOptions}
+            justSaved={payerJustSaved === "celular"}
           />
           <PayerRow
             label="Alarma"
             value={form.alarma}
             paidBy={form.alarma_paid_by}
-            onChange={(v) => setForm({ ...form, alarma: v })}
-            onPaidBy={(p) => setForm({ ...form, alarma_paid_by: p })}
+            onChange={(v) => updateForm({ alarma: v })}
+            onPaidBy={(p) => handlePayerChange("alarma", p)}
             options={payerOptions}
+            justSaved={payerJustSaved === "alarma"}
           />
         </div>
 
@@ -672,22 +706,22 @@ export default function FinanzasPage() {
           <MoneyRow
             label="Empleada doméstica"
             value={form.empleada}
-            onChange={(v) => setForm({ ...form, empleada: v })}
+            onChange={(v) => updateForm({ empleada: v })}
           />
           <MoneyRow
             label="Caja menor"
             value={form.caja}
-            onChange={(v) => setForm({ ...form, caja: v })}
+            onChange={(v) => updateForm({ caja: v })}
           />
           <MoneyRow
             label="Mercado"
             value={form.mercado}
-            onChange={(v) => setForm({ ...form, mercado: v })}
+            onChange={(v) => updateForm({ mercado: v })}
           />
           <MoneyRow
             label="Imprevistos o varios"
             value={form.varios}
-            onChange={(v) => setForm({ ...form, varios: v })}
+            onChange={(v) => updateForm({ varios: v })}
             placeholder="0"
           />
         </div>
@@ -729,7 +763,7 @@ export default function FinanzasPage() {
                 inputMode="numeric"
                 value={formatThousands(form.saldo_banco)}
                 onChange={(e) =>
-                  setForm({ ...form, saldo_banco: digitsOnly(e.target.value) })
+                  updateForm({ saldo_banco: digitsOnly(e.target.value) })
                 }
                 placeholder=""
                 className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
@@ -742,23 +776,45 @@ export default function FinanzasPage() {
           <label className="block text-xs text-text-2">Nota del mes</label>
           <textarea
             value={form.nota}
-            onChange={(e) => setForm({ ...form, nota: e.target.value })}
+            onChange={(e) => updateForm({ nota: e.target.value })}
             placeholder="Ej: Se pagó médico por gripa $85.000. Llegó factura bimestral del agua."
             rows={2}
             className="mt-1 w-full rounded-md border border-border-2 bg-bg-2 px-3 py-2 text-sm focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           />
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-          {savedFlag && (
-            <div className="mr-auto text-xs text-green">Cambios guardados</div>
+        <div className="mt-4 rounded-md border border-border-2 bg-bg-2 p-3 text-xs text-text-2">
+          <Icon
+            name="info"
+            className="mr-1 align-middle text-base text-text-3"
+          />
+          Los pagos se guardan al toque cuando seleccionas quién pagó. Acá
+          guardas los montos y el saldo cuando termines de escribirlos.
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+          {dirty && !saving && (
+            <div className="mr-auto flex items-center gap-1 text-xs font-medium text-amber">
+              <Icon name="schedule" className="text-base" />
+              Cambios sin guardar
+            </div>
+          )}
+          {savedFlag && !dirty && (
+            <div className="mr-auto flex items-center gap-1 text-xs font-medium text-green">
+              <Icon name="check_circle" filled className="text-base" />
+              Guardado
+            </div>
           )}
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !dirty}
             className="min-h-11 rounded-md bg-blue px-5 py-2 text-sm font-medium text-bg active:opacity-80 hover:opacity-85 disabled:opacity-50"
           >
-            {saving ? "Guardando..." : "Guardar mes"}
+            {saving
+              ? "Guardando..."
+              : dirty
+                ? "Guardar montos y saldo"
+                : "Todo guardado"}
           </button>
         </div>
       </div>
@@ -1165,6 +1221,7 @@ function PayerRow({
   onChange,
   onPaidBy,
   options,
+  justSaved,
 }: {
   label: string;
   value: string;
@@ -1172,6 +1229,7 @@ function PayerRow({
   onChange: (v: string) => void;
   onPaidBy: (p: PayerId) => void;
   options: { id: PayerId; label: string }[];
+  justSaved?: boolean;
 }) {
   return (
     <div className="border-b border-border pb-3 last:border-0">
@@ -1191,7 +1249,7 @@ function PayerRow({
           />
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         {options.map((o) => {
           const active = paidBy === o.id;
           return (
@@ -1209,6 +1267,12 @@ function PayerRow({
             </button>
           );
         })}
+        {justSaved && (
+          <span className="ml-1 flex items-center gap-0.5 text-xs font-medium text-green">
+            <Icon name="check_circle" filled className="text-base" />
+            Guardado
+          </span>
+        )}
       </div>
     </div>
   );

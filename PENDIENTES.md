@@ -2,60 +2,92 @@
 
 Ideas y mejoras que surgen durante el desarrollo. No tienen fecha. Se atacan cuando duele o cuando hay tiempo.
 
-## Notificaciones fuera de la app
+## Hecho (refleja lo entregado a 2026-05-27)
 
-Actualmente las alertas de refill (vencido / próximo) solo se ven cuando Ingrid o Sandra abren la app. Si no entran en una semana, no se enteran.
+Para no perder memoria de lo que ya se construyo:
 
-Ideas para sacar las alertas afuera:
-
-- **Email diario con el resumen pendiente**. Más barato y universal. Convex tiene cron jobs (`convex/crons.ts`) que pueden disparar a una hora fija. Para mandar email: Resend (free 100/día) o Mailgun.
-- **Notificación push del navegador (PWA + Web Push)**. Sin app store, instalable en celular. Requiere agregar manifest + service worker + VAPID keys.
-- **WhatsApp por la Cloud API de Meta**. El canal natural de ellas. Setup más pesado (necesita aprobación de plantilla de mensaje).
-- **SMS via Twilio**. Simple pero $$.
-
-Recomendación a futuro: empezar con email, evaluar adopción.
-
-Cobertura ideal: además de alertas de medicamentos, también citas próximas (≤7 días) y pagos por vencer.
+- **Notificaciones fuera de la app**: email digest semanal (domingo 13 UTC) + alertas en tiempo real (refill, payment, appointment) via Resend + scheduler de Convex. FROM `onboarding@resend.dev`. Ingrid configurada con `iyi1125@gmail.com`. Sandra: pendiente de pasar email.
+- **Vista de la abuela** en `/abuela`: caregiver con `role="patient"`, login propio, vista solo-lectura con saldo grande + lista de medicamentos.
+- **Agente de ingestion (parcial)**: drag-and-drop global a `/app/ingestar` + foto/texto + Gemini Flash con response schema estructurado + propuestas que la cuidadora confirma antes de guardar. Fallback manual si Gemini falla.
+- **Modelo Splitwise en finanzas**: per-service `_paid_by` reemplaza el booleano viejo + tabla `settlements` para devoluciones + `getBalances` query. Si Ingrid paga Enel de su bolsillo, se crea deuda; al devolver, baja saldo y cierra deuda.
+- **Bitacora de finanzas**: tabla `finance_audit` append-only con snapshot al borrar. Eventos: created/updated/paid/unpaid/payer_changed/deleted/settled.
+- **Design system Stitch-style**: paleta Material 3 light-only (primary navy claro, secondary teal, tertiary lavanda), Atkinson Hyperlegible Next, Material Symbols por toda la UI, bottom nav fija, FAB navy, glass-card en saldo, cards con icon container + borde-l-4 + pills coloridas, section headers a 20px semibold.
+- **Auto-save en finanzas**: cero boton "Guardar". Cada cambio dispara upsert con 800ms debounce. Toast "Guardado" verde abajo + indicador chico arriba. Mental model unico para no-tech.
+- **Estado del mes anterior** en finanzas: card que muestra los 7 servicios del mes pasado con su status. Se oculta cuando no hay data.
+- **Valor dinamico en Pagos**: monto desde `finance_months` (current + last) en lugar del `amount_reference` fijo. Status compacto en una linea.
+- **Tercer boton "Ana Maria"** en WhoDidIt (selector pagador). Default para meses nuevos en finanzas.
 
 ## UI: items diferidos del audit
 
-Los fixes de impacto alto ya se aplicaron (em-dashes, contraste WCAG, tap targets, voseo a tuteo, agrupación de finanzas, banner de "Cambios guardados", formato de miles en pesos, CTAs en alertas, restauración de tabs estilo HTML original con tab Resumen como default, atribución siempre visible en historiales). Lo que quedó pendiente:
+Los fixes de impacto alto del audit P0/P1 ya estan aplicados (em-dashes, contraste, tap targets, voseo a tuteo, formato de miles, save toast, focus rings en inputs, semantica). Lo que quedo abierto:
 
-- **Modal custom para confirmaciones y validaciones.** Hoy usa `window.confirm()` y mensaje inline. El modal nativo se ve distinto en cada OS y no respeta el tono de la app. Modal propio en español con botones grandes claramente diferenciados (rojo para borrar).
-- **Lista antes que el formulario en medicamentos y citas.** Hoy el form ocupa la parte alta y empuja la lista. Si la cuidadora abre solo para consultar, tiene que scrollear. Alternativas: form colapsado en acordeón, o lista arriba y form como botón sticky al final.
-- **Manejo de errores de red en mutaciones.** Si Convex falla un `await upsert/create/update`, el catch silencioso deja a la cuidadora creyendo que se guardó. Mostrar banner rojo "No se pudo guardar. Revisa tu conexión e intenta de nuevo."
-- **Focus-visible rings consistentes en todos los controles.** Ya están en inputs, falta agregar a los botones para teclado/lectores de pantalla.
+- **Modal custom para confirmaciones.** Hoy usa `window.confirm()`. Se ve distinto en cada OS y no respeta el tono. Modal propio en espanol con botones grandes claramente diferenciados (rojo para borrar). Aplica a: borrar mes en finanzas, borrar medicamento, borrar cita, settle de cuentas pendientes.
+- **Lista antes que el formulario** en medicamentos y citas. Hoy el form ocupa la parte alta y empuja la lista. Si la cuidadora abre solo para consultar, scrollea. Alternativas: form colapsado en acordeon, o lista arriba y form como boton sticky al final.
+- **Manejo de errores de red en mutaciones.** Si Convex falla un `await upsert/create/update`, el catch silencioso (o vacio) deja a la cuidadora creyendo que se guardo. Mostrar banner rojo "No se pudo guardar. Revisa tu conexion e intenta de nuevo." El auto-save de finanzas ya tiene `saveStatus: "error"` pero el toast solo aparece brevemente; mejorar.
+- **Focus-visible rings en botones.** Faltan rings consistentes en los botones (pills, FAB, bottom nav). Inputs ya tienen.
 
-## Vista de la abuela (super simple, solo-lectura)
+## Dark mode
 
-Mauricio quiere darle a Ana María su propia entrada a la app. Por el Alzheimer no puede ser complicado; lo que ella siempre pregunta tiene un foco muy claro:
+Quitado en la sesion del 2026-05-27 porque el design system Stitch que usamos como referencia es solo-light y nuestra app se veia inconsistente cuando el celular forzaba dark. Hoy `colorScheme: "light"` esta forzado en `app/layout.tsx`.
 
-- **Su saldo en el banco** (siempre se preocupa por eso). Tomar el `saldo_banco` del mes en curso del row de `finance_months`, mostrarlo en grande.
-- **Qué medicamentos tiene que tomar hoy**. Lista de los 9 medicamentos con dosis y frecuencia, sin fechas de refill ni próximos pasos. Solo qué y cuándo.
-- **Sin acciones**. Cero botones de editar, marcar, agregar, borrar. Solo lectura. Texto grande, jerarquía única.
+Si se quiere dark mode mas adelante:
+- Armar valores dark acompasados con la paleta clara actual (primary `#2a5c82` → dark `#9ccbf7` o similar).
+- Re-introducir el `@media (prefers-color-scheme: dark)` en `globals.css`.
+- Probar todos los componentes nuevos (Pill variants, glass-card, icon containers, bottom nav active state).
 
-Tres formas de entregarla:
-- **Login propio con vista hiper-simplificada.** Otro link de invitación para ella, ruta tipo `/abuela` que solo muestra estas dos cosas. Si las cuidadoras la ayudan a guardar el link en la pantalla de inicio del celular, queda como un acceso directo.
-- **Pantalla pública en su habitación.** Tablet vieja siempre encendida en `losnuestros.vercel.app/abuela` (solo-lectura, sin auth, solo la patient default). Funciona como reloj inteligente para Alzheimer.
-- **Registro del día (no es la abuela como usuaria, sino una sección extra para las cuidadoras).** Donde Ingrid y Sandra anotan "le di Atorvastatina 8am", "se quejó del estómago", "durmió bien". Sigue siendo útil aunque la abuela no entre.
+## Auto-save: edge case de race condition
 
-Decisión pospuesta. Si se retoma, empezar por el camino 1 (login propio para ella) porque resuelve directamente lo que ella pregunta sin requerir hardware nuevo.
+El debounce en finanzas es 800ms. Si la cuidadora cambia el `selectedMonth` antes de que dispare el save, el cambio se pierde. En la practica casi nunca pasa porque hay que tipear y cambiar de mes en menos de 1 segundo.
 
-## Agente de ingestion (foto + texto → DB)
+Mejora posible: flush del save al detectar `selectedMonth` change si `dirty=true`. O reducir el debounce a 400ms.
 
-Hoy cuando llega un recetario nuevo o una cita por WhatsApp, Mauricio se lo pasa a Claude Code, Claude lo parsea y escribe la mutation a mano. Funciona pero requiere developer-in-the-loop.
+## Email deliverability
 
-Idea: un agente que reciba fotos y texto libre directamente desde la app (o un canal dedicado) y haga la ingesta automatica.
+FROM actual: `onboarding@resend.dev`. Dominio sandbox compartido — puede caer a spam. Para mejorar:
+1. Comprar dominio (ej. `losnuestros.app` o usar uno que ya tenga Mauricio).
+2. Verificar el dominio en Resend (DNS records).
+3. Cambiar `FROM_ADDRESS` en `convex/email.ts`.
 
-Casos de uso vistos hasta ahora:
-- **Recetarios de Compensar** (foto): nombre del medicamento, dosis, intervalo, duracion del tratamiento (175-180 dias), medico que prescribe. Mapear a la tabla `medications` (update si ya existe por nombre, crear si no).
-- **Mensajes de WhatsApp con citas** (texto libre): "Reumatologia - Mayo 28 - 11 AM, Sede 98 con 11". Parsear especialidad, fecha, hora, lugar. Mapear a `appointments`.
-- **Recibos de pago** (foto): valor, servicio, fecha. Mapear a `finance_months` (marcar `_paid = true`, ajustar el monto si difiere del registrado).
+Costo: ~$10/ano del dominio. Bastante barato si se quiere que los emails se vean confiables.
 
-Componentes:
-- **OCR + extraccion**: Claude Sonnet con vision via Anthropic SDK, prompt con few-shot examples del HTML spec y de la estructura de las tablas Convex.
-- **UI de confirmacion**: agente devuelve "voy a insertar esto, OK?". Cuidadora confirma o corrige antes de escribir.
-- **Canal**: upload de foto en `/app` (boton "Cargar receta o cita"), o webhook de WhatsApp si en el futuro hay numero dedicado.
-- **Idempotencia**: por nombre + fecha para no duplicar.
+## Mas servicios en referencias (escala)
 
-Decision pospuesta hasta que la ingesta manual se vuelva fricciosa.
+Los 7 servicios actuales (compensar, enel, gas, agua, internet, celular, alarma) estan hardcodeados en `finance_months` como columnas separadas. Si la familia agrega un servicio nuevo (ej. Netflix, jardinero), hay que:
+- Agregar columnas al schema.
+- Agregar al form.
+- Agregar al PreviousMonthStatus.
+- Agregar al mapeo en email digest y resumen.
+
+Si esto se vuelve frecuente, considerar:
+- Tabla generica `monthly_services` con relacion a `payment_references`.
+- Mas flexibilidad pero pierde la rigidez del modelo actual (que es comodo para el caso conocido).
+
+## Ana Maria escribe en el form (no aplica todavia)
+
+Hoy `/abuela` es solo-lectura. Si en algun momento ella puede registrar cosas (con ayuda), pensar:
+- Boton "tome mi medicamento" con confirmacion grande.
+- Sin opciones de borrar o editar.
+- Atribucion clara: "Ana Maria confirmo Atorvastatina 8:15am".
+
+Pospuesto hasta que la familia lo pida.
+
+## Migracion: limpiar campos viejos en finance_months
+
+Despues de la migracion `backfillPaidBy`, los campos `_paid: boolean` viejos siguen existiendo en schema como `v.optional` (para no romper data legacy). Se pueden remover en un commit limpio cuando todos los rows tengan `_paid_by` y `_paid` sea undefined:
+
+```
+1. Verificar: query que confirme que ningun row tiene _paid set
+2. Editar schema.ts: remover los campos _paid optional
+3. Re-deploy convex
+4. Eventualmente tambien remover responsible_for de finance_months (ya no se usa)
+```
+
+No urgente. Schema con campos extras opcionales no rompe nada.
+
+## setServicePayer mutation: posible cleanup
+
+En la sesion del 2026-05-27 movimos finanzas a un modelo de auto-save donde todo va por `upsert`. La mutation `setServicePayer` (que escribe un solo `_paid_by` + `amount` para un servicio) sigue en `convex/financeMonths.ts` porque la usan los CTAs externos:
+- `/app/resumen` (boton "Marcar pagado" en alertas)
+- `/app/ingestar` (al confirmar pagos parseados)
+
+Si esos CTAs se rehacen para usar `upsert` con la data completa del mes, `setServicePayer` se puede borrar.

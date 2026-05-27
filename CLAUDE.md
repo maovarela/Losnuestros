@@ -2,13 +2,71 @@
 
 Contexto para que cualquier sesion de Claude Code arranque oriented en menos de 30 segundos.
 
+## Quien usa este archivo
+
+Tres audiencias pueden abrir este repo y empezar una sesion de Claude Code:
+
+1. **Mauricio (admin/developer).** Conoce el codigo, deploya, gestiona Convex/Vercel.
+2. **Ingrid Perez (mama de Mauricio).** Cuidadora principal. Quiere ajustar la app para que su uso diario sea mas comodo: cambios de copy, ajustar colores, mover algo de lugar, agregar features chicas. No es developer.
+3. **Sandra Perez (tia).** Misma situacion que Ingrid pero menos involucrada con la app.
+
+Si abriste Claude aca y nunca tocaste codigo, lee la seccion **"Para empezar"** abajo. Si sos developer, salta directo a "Stack" y "Estructura del repo".
+
+## Para empezar (especialmente si nunca tocaste codigo)
+
+Claude Code es como tener un programador al lado escuchando tus pedidos. Decile en espanol lo que querias cambiar y el lo hace por vos. Reglas que ayudan:
+
+**Como pedir cosas:**
+- Se concreta: "cambia el color del boton Guardar a verde" mejor que "haz la app mas linda".
+- Si no sabes que palabra usar, describi: "el cuadro grande que aparece arriba con el saldo".
+- Mandale screenshots cuando puedas. Claude los entiende.
+
+**Como probar antes de pushear (recomendado para cambios chicos):**
+1. Abri una terminal aca y corre `npm run dev`.
+2. Abri <http://localhost:3000> en el navegador.
+3. Pedile a Claude el cambio. La pagina se recarga sola con cada edit.
+4. Cuando te guste, decile a Claude "commitea y pushea". Vercel publica solo en 1-2 minutos.
+
+**Reglas de seguridad (importantes):**
+- Si Claude propone borrar algo (filas en la base, archivos importantes), preguntale "que pasa si lo hago" antes de aceptar.
+- Pedile que te muestre los cambios (`git diff`) antes de commitear si tenes dudas.
+- Si rompiste algo despues de un push, decile a Claude "deshace el ultimo cambio" (es un `git revert`). Vercel vuelve atras solo.
+- **Nunca** corras `git reset --hard`, `git push --force`, `git clean -f` sin entender. Si Claude lo sugiere, pregunta dos veces.
+- La base de datos en produccion tiene tu info real. Antes de tocar Convex (mutations, schema), decile a Claude que te explique que va a cambiar.
+
+**Cosas que Claude puede hacer por vos sin riesgo:**
+- Cambiar textos, copy, traducciones.
+- Mover componentes, cambiar colores, ajustar espaciado.
+- Agregar campos a un formulario.
+- Cambiar lo que dice un email.
+- Renombrar cosas para que sean mas claras.
+
+**Cosas que pide pensar bien antes:**
+- Cambiar el modelo de datos (tablas, campos en la DB).
+- Borrar features que ya funcionan.
+- Cambiar la forma en que los usuarios entran (auth).
+- Tocar el cron de los emails.
+
+**Workflow tipico de una sesion contigo:**
+```
+1. Abris Claude Code aca: "claude" en la terminal
+2. Le decis: "quiero cambiar X"
+3. Te pregunta cosas, te muestra opciones
+4. Aceptas la que te gusta
+5. Hace el cambio, te muestra el resultado en localhost
+6. Si te gusta: "commitea y pushea con un mensaje claro"
+7. En 2 minutos esta vivo en losnuestros.vercel.app
+```
+
+Si te perdiste o algo no funciona, dejale el problema escrito a Mauricio y el lo retoma.
+
 ## Que es esto
 
 **LosNuestros** es un organizador familiar para dos cuidadoras (Ingrid Perez y Sandra Perez) que cuidan a Ana Maria Ortega Salcedo, la abuela de Mauricio (varelaperezmauricio@gmail.com / GitHub `maovarela`). Ana Maria tiene Alzheimer.
 
 El problema central: las dos cuidadoras **no se comunican mucho entre ellas**. La app cierra ese gap con datos compartidos en tiempo real. Cuando una marca un pago, registra una cita o actualiza un refill, la otra lo ve sin tener que llamarla.
 
-Mauricio **no es usuario final**. Es admin: setupea, genera links de invitacion, deploya. Las usuarias son su mama y su tia, ambas no-tecnicas.
+Mauricio **no es usuario final**. Es admin: setupea, genera links de invitacion, deploya. Las usuarias son su mama y su tia, ambas no-tecnicas. Tambien hay un tercer usuario solo-lectura: la propia Ana Maria, con ruta dedicada `/abuela`.
 
 Spec funcional original: `spec/panel-original.html` (HTML vanilla con localStorage que Mauricio y su mama trabajaron). La spec se respeto en data y semantica, no en codigo.
 
@@ -16,9 +74,13 @@ Spec funcional original: `spec/panel-original.html` (HTML vanilla con localStora
 
 - Next.js 16 (App Router, Turbopack) + TypeScript + React 19
 - Tailwind v4 con design tokens CSS-first en `app/globals.css` (no `tailwind.config.ts`)
-- Convex (DB + realtime + functions) en `convex/`
+- Convex (DB + realtime + functions + crons + scheduler) en `convex/`
+- Resend para emails (digest semanal + alertas en tiempo real). `RESEND_API_KEY` en Convex env vars
+- Gemini Flash via Google AI Studio para vision/ingestion (`GEMINI_API_KEY` en Vercel env)
 - Vercel hosting (free tier hobby, uso familiar no comercial)
-- Auth custom: link de invitacion + cookie HttpOnly firmada con HMAC-SHA256 (Web Crypto). Dura 1 ano.
+- Auth custom: link de invitacion + cookie HttpOnly firmada con HMAC-SHA256 (Web Crypto). Dura 1 ano. Tokens reutilizables (no se queman).
+- Atkinson Hyperlegible Next via `next/font/google` (accesibilidad baja-vision)
+- Material Symbols Outlined via Google Fonts link (iconos por toda la UI)
 
 **Heads up Next.js 16**: si necesitas chequear convenciones nuevas (cookies en RSC vs Route Handler, etc.), `AGENTS.md` apunta a `node_modules/next/dist/docs/`. Ya nos mordio una vez (cookies set en Server Component lanzaba runtime error).
 
@@ -28,31 +90,50 @@ Spec funcional original: `spec/panel-original.html` (HTML vanilla con localStora
 
 ```
 app/
+  layout.tsx                root: Atkinson + Material Symbols + colorScheme: light
+  globals.css               tokens M3 (Stitch palette light-only), .glass-card, material-symbols CSS
   page.tsx                  landing publica (oculta nombre patient pre-auth)
-  layout.tsx                root, metadata, html lang=es
-  globals.css               paleta del HTML como @theme tokens (light + dark auto)
   entrar/[token]/route.ts   GET handler que consume invitation, setea cookie, redirige
+  abuela/
+    layout.tsx              guard de sesion para role=patient
+    page.tsx                vista solo-lectura: saldo grande + lista de medicamentos
+  api/ingest/route.ts       POST handler que llama Gemini Flash con vision schema
   app/
-    layout.tsx              guard de sesion + header con avatar AO + Tabs + providers
-    _components/tabs.tsx    barra horizontal de tabs (active via usePathname)
-    page.tsx                redirect a /app/resumen (no contenido)
-    resumen/page.tsx        Lo que viene esta semana + Lo que paso esta semana
-    medicamentos/page.tsx   alertas + form + lista + ?edit=<id> deep link
-    citas/page.tsx          banner proxima cita + form + historial + ?edit=<id>
-    referencias/page.tsx    read-only por servicio + hogar
-    finanzas/page.tsx       form mensual + reconciliacion banco vs teorico + historial
+    layout.tsx              guard de sesion + header + bottom nav fija + FAB + providers
+    _components/
+      tabs.tsx              bottom nav fija con 5 items (Inicio/Meds/Citas/Finanzas/Pagos)
+      fab.tsx               FAB azul navy flotante hacia /app/ingestar (se oculta alli)
+      icon.tsx              wrapper Material Symbols con filled prop
+      pill.tsx              Pill component variantes success/warn/danger/info/tertiary/neutral
+      who-did-it.tsx        selector pagador con 3 botones (Ana Maria + Yo + Sandra)
+      drag-drop-overlay.tsx overlay global para drag files a /app/ingestar
+    page.tsx                redirect a /app/resumen
+    resumen/page.tsx        UpcomingCard con iconos+borde-l + Lo que paso (atribucion)
+    medicamentos/page.tsx   alertas con borde-l + cards con icon container azul + pills
+    citas/page.tsx          banner proxima cita purple + cards con icon event purple
+    referencias/page.tsx    cards con icon container ambar + status dinamico desde finance_months
+    finanzas/page.tsx       auto-save todo (sin boton) + glass-card saldo + estado mes anterior
+    ingestar/page.tsx       upload foto/texto + Gemini parsing + revisar propuestas
 
 convex/
-  schema.ts                 patients, caregivers, invitations, medications,
-                            appointments, payment_references, finance_months
+  schema.ts                 patients, caregivers (con role+email), invitations,
+                            medications, appointments, payment_references,
+                            finance_months (con _paid_by per servicio), settlements,
+                            finance_audit (append-only, snapshot on delete)
   patients.ts               getDefault
-  caregivers.ts             getById, listByPatient, rename
-  invitations.ts            create, consume (one-time tokens, 30 dias TTL)
-  medications.ts            CRUD + markRefilled (last=hoy, next=hoy+intervalo previo)
-  appointments.ts           CRUD
-  paymentReferences.ts      CRUD (ordenadas por sort_order)
-  financeMonths.ts          CRUD + getByMonth + upsert + markServicePaid (crea mes
-                            si no existe con defaults del HTML)
+  caregivers.ts             getById, listByPatient, getPatientCaregiver, rename,
+                            setEmail, setRole, createPatientView
+  invitations.ts            create, consume (tokens reutilizables, 30 dias TTL)
+  medications.ts            CRUD + markRefilled (dispara sendChangeAlert)
+  appointments.ts           CRUD (dispara sendChangeAlert al crear)
+  paymentReferences.ts      listByPatient (ordenadas por sort_order)
+  financeMonths.ts          upsert + remove + markServicePaid + setServicePayer
+                            + settle + getByMonth + listByPatient + getBalances
+                            + listSettlements + listAuditByPatient + backfillPaidBy
+  email.ts                  Resend integration: sendWeeklyDigest (cron domingo 13 UTC)
+                            + sendChangeAlert (refill/payment/appointment) via scheduler
+                            + sendDigestNow (action publica para testing)
+  crons.ts                  weekly digest sunday 13:00 UTC
   seed.ts                   mutation idempotente: patient + caregivers + invitations
                             + 9 medicamentos + 1 cita + 10 referencias
 
@@ -61,26 +142,65 @@ lib/
   session-server.ts         getSession server-only (cookies().get)
   convex-server.ts          singleton ConvexHttpClient para Server Components
   convex-client.tsx         ConvexProvider para Client Components
-  app-context.tsx           inyecta patientId/caregiverId/nombres via React context
+  app-context.tsx           inyecta patientId/caregiverId/nombres/patientCaregiver
+  drop-context.tsx          useRef-based context para pending file en drag-drop
 
 spec/panel-original.html    HTML original como referencia funcional
 PENDIENTES.md               backlog vivo
 ```
 
-## Estado al cierre (2026-05-24, commit `03ac06a`)
+## Estado al cierre (2026-05-27, commit `a161aa8`)
 
-Las **6 fases planeadas estan en produccion**:
+Todo lo de las 6 fases originales esta en produccion, mas un set grande de mejoras de esta sesion:
 
-- F0 scaffold, F1 auth + schema base, F2 medicamentos, F3 citas, F4 referencias, F5 finanzas, F6 home con alertas.
+**Modelo de datos (financiero):**
+- Per-service payer (`compensar_paid_by`, `enel_paid_by`, etc.) en lugar del booleano `_paid` viejo + month-level `responsible_for`. Migrado con `backfillPaidBy`.
+- Tabla `settlements` para registrar devoluciones (Ana Maria paga a Ingrid/Sandra lo que ellas adelantaron). Modelo Splitwise-style.
+- Tabla `finance_audit` append-only con snapshot al borrar. Eventos: created, updated, paid, unpaid, payer_changed, deleted, settled.
+- Cuando Ingrid/Sandra paga un servicio de su bolsillo, se crea deuda; cuando Ana Maria les devuelve, baja el saldo del banco y la deuda vuelve a 0.
 
-Mejoras post-fases ya aplicadas:
-- Auditoria UI (P0/P1 del audit del Product Manager subagente): em-dashes fuera, contraste WCAG AA, tap targets min-h-11, voseo a tuteo neutro colombiano, save toast, focus-visible rings, semantica main/nav/section.
-- Separador de miles en inputs de pesos ($1.080.000) con `tabular-nums`.
-- CTAs en cada alerta: "Hice el refill", "Marcar pagado", "Ver cita". Las dos primeras son mutations de un solo toque; la tercera es deep link `?edit=<id>` al form.
-- Estructura visual del HTML original restaurada (post-feedback): tabs horizontales en lugar de cards de navegacion, nueva tab "Resumen" como default con "Lo que viene" + "Lo que paso esta semana", alertas viven dentro de cada tab (no consolidadas en home).
-- Atribucion siempre visible en historiales: "Ingrid actualizo X" / "Sandra actualizo Y" en medicamentos, citas, finanzas y resumen reciente. Antes estaba filtrado solo cuando era la otra cuidadora, ahora siempre aparece.
+**Email digest + alertas en tiempo real:**
+- Cron domingo 13:00 UTC dispara `sendWeeklyDigest` (resumen "lo que viene" + "lo que paso").
+- Mutations criticas (markRefilled, markServicePaid/setServicePayer, appointments.create, medications.create) disparan `sendChangeAlert` via scheduler.runAfter(0, ...).
+- FROM address: `onboarding@resend.dev` (sandbox, sin domain verification). Para mejor deliverability eventualmente verificar dominio en Resend.
 
-Backlog vivo: **`PENDIENTES.md`** en root. Items abiertos: notificaciones externas (email Resend + Convex cron), modal custom vs `window.confirm`, lista antes que form, manejo de errores de red, focus rings en botones, tercer "usuario" abuela (3 caminos posibles, decidir).
+**Vista de la abuela en `/abuela`:**
+- Login con su propio token (caregiver record con `role: "patient"`).
+- Ruta dedicada, solo-lectura, super simple: saldo del mes en grande + lista de medicamentos.
+- El handler `/entrar/[token]` revisa el role y redirige a `/abuela` o `/app` segun corresponda.
+
+**Ingestion via Gemini Flash:**
+- Drag-and-drop global activo en cualquier `/app/*` (DragDropOverlay).
+- Page `/app/ingestar` con upload de foto / pegar texto.
+- `POST /api/ingest` llama Gemini Flash con `responseSchema` para JSON estructurado.
+- Devuelve propuestas (med / cita / pago) que la cuidadora revisa antes de guardar.
+- Fallback manual si Gemini falla.
+
+**Design system (Stitch-style):**
+- Paleta Material 3 light-only: primary `#2a5c82` navy claro, secondary `#438e79` teal, tertiary `#6d5da1` lavanda, error `#ba1a1a`, body bg `#f8fafc`.
+- Atkinson Hyperlegible Next como font principal (accesibilidad).
+- Material Symbols Outlined por toda la UI (iconos en alertas, cards, navegacion, FAB).
+- Bottom nav fija reemplaza tabs horizontales (5 items con iconos, pill verde para activo).
+- FAB azul navy bottom-right hacia `/app/ingestar` en todas las paginas de `/app/*`.
+- Glass-card + headline grande (48px bold) para saldo en finanzas.
+- Cards con icon container + borde-l-4 coloreado por categoria (meds blue, citas purple, refs amber).
+- Pills coloridas para estados (Vencido rojo, En N dias ambar, Pagado verde, etc.).
+- Section headers a 20px semibold reemplazan los `text-xs uppercase tracking-wider`.
+- `prefers-color-scheme: dark` removido (forzado a light siempre, el spec no incluye dark).
+
+**UX finanzas (auto-save):**
+- Cero boton "Guardar". Cada cambio (pill de pagador, monto, saldo, nota) auto-guarda a 800ms de debounce via upsert.
+- Toast flotante "Guardado" verde aparece en el medio inferior por 2.5s tras cada save.
+- Indicador chico arriba del form: "Guardando..." / "Cambios guardados".
+- Mental model unico: la app se acuerda sola, no hay que apretar nada.
+- Sigue existiendo `setServicePayer` para CTAs externos (resumen, ingestar) pero la pagina de finanzas no la usa directamente.
+
+**Otras mejoras:**
+- Tercer boton "Ana Maria" en WhoDidIt (selector pagador) en todas las pantallas. Default en finanzas para meses nuevos.
+- Card "Estado del mes anterior" en finanzas (oculta cuando no hay data del prev).
+- Valor dinamico en Pagos: monto desde `finance_months` (current + last) en lugar del `amount_reference` fijo. Status compacto en una linea: "✓ $X pagados en mayo por Ana Maria".
+
+Backlog vivo: **`PENDIENTES.md`** en root. Lo grande pendiente: dark mode acompasado, modal custom vs `window.confirm`, lista antes que form en meds/citas, manejo de errores de red en mutaciones, deliverability emails (verificar dominio en Resend).
 
 ## Reglas de colaboracion (hard)
 
@@ -88,16 +208,18 @@ Mauricio fue explicito al inicio. Estas son las reglas que cortan cuando hay dud
 
 - **Spanish first**, sin i18n
 - **Mobile first**, uso real desde celular
+- **No-tech users**: Ingrid y Sandra son los usuarios reales. Mental models simples, una sola regla por feature. Cero jerga.
 - **Sin emojis** en UI ni codigo salvo pedido explicito
 - **Sin em-dashes (—) en copy del usuario** (en comentarios de codigo si)
 - **Sin features que no se pidieron**. Tres lineas similares es mejor que una abstraccion prematura.
 - **Sin docs auto-inventados** salvo `PENDIENTES.md` y `CLAUDE.md` (este). README.md, ADRs, etc. solo si Mauricio los pide.
 - **Sin backwards-compat hacks**. Quitar limpio, sin re-exports ni `_unused`.
 - **Cambios destructivos avisados** antes de force push, reset hard, delete data.
-- **Restraint editorial** en visual. Paleta del HTML (verde/ambar/azul/rojo sutiles), system fonts, dark mode auto. Sin gradientes, sin drop shadows agresivos, sin animaciones decorativas.
-- **Privacidad**: datos medicos y financieros reales. Auth estricto, nada de subir a servicios externos sin aprobar.
+- **Light mode only** por ahora. El design system Stitch no tiene valores dark. Si se quiere dark, hay que armarlo desde cero.
+- **Privacidad**: datos medicos y financieros reales. Auth estricto, nada de subir a servicios externos sin aprobar (Gemini y Resend ya estan aprobados).
 - **Decisiones subjetivas → AskUserQuestion** con 3-4 opciones y previews cuando ayuden (color, copy, naming, layout). Una pregunta cuesta un mensaje, un commit rechazado cuesta una sesion.
 - **Verifica visualmente** antes de declarar terminado. UI tocada → abrirla en navegador, probar golden path + edge cases. Si no se puede testear en vivo, decirlo explicito.
+- **Cambios grandes en branch + preview deploy de Vercel** antes de mergear a main. Si el riesgo es bajo (1-2 archivos), merge directo y `git revert` si no gusta. Vercel auto-deploya `main` en 1-2 min.
 
 ## Comandos clave
 
@@ -112,13 +234,23 @@ npm run build
 $env:CONVEX_DEPLOYMENT = 'prod:little-moose-778'
 npx convex deploy
 
-# Correr una mutation o query contra prod
+# Correr una mutation o query contra prod (PowerShell)
 npx convex run --prod <module>:<function>
-# JSON args con --% para que PowerShell no se coma las comillas:
-npx convex run --prod invitations:create --% "{\"caregiverId\": \"<id>\"}"
+# JSON args con --% para que PowerShell no se coma las comillas
+# Para JSON con IDs largos, mejor usar bash si lo tenes:
+CONVEX_DEPLOYMENT='prod:little-moose-778' npx convex run --prod financeMonths:backfillPaidBy '{"patientId": "..."}'
 
 # Seed (idempotente, no rompe nada al re-correrlo)
 npx convex run --prod seed:initial
+
+# Probar email digest sin esperar al cron
+npx convex run --prod email:sendDigestNow
+
+# Setear email de una caregiver
+npx convex run --prod caregivers:setEmail '{"id": "...", "email": "x@y.com"}'
+
+# Crear caregiver-patient view (Ana Maria como caregiver con role=patient)
+npx convex run --prod caregivers:createPatientView
 ```
 
 Vercel auto-deploya al pushear `main`. Cambios en `convex/*.ts` requieren `npx convex deploy` aparte (manual).
@@ -126,44 +258,53 @@ Vercel auto-deploya al pushear `main`. Cambios en `convex/*.ts` requieren `npx c
 ## URLs e IDs operativos
 
 - App prod: <https://losnuestros.vercel.app>
+- Vista abuela: <https://losnuestros.vercel.app/abuela>
 - Repo: <https://github.com/maovarela/Losnuestros>
 - Convex dashboard: <https://dashboard.convex.dev>
 - Convex prod backend: `https://little-moose-778.convex.cloud`
 - Notion: <https://www.notion.so/maovarela/LosNuestros-36a238c747f280428db3c9a858d1988a>
+- Resend dashboard: <https://resend.com/emails>
 
 Caregivers en prod:
-- Ingrid Perez: `j576a4m9y129c2z6r6nj4y647587arhv`
-- Sandra Perez: `j57b27txvxnqqrs7xrz8n34wdh87btgq`
+- Ingrid Perez: `j576a4m9y129c2z6r6nj4y647587arhv` (email: iyi1125@gmail.com)
+- Sandra Perez: `j57b27txvxnqqrs7xrz8n34wdh87btgq` (email: pendiente)
+- Ana Maria (role=patient): generada via `caregivers:createPatientView`
 
-Para generar links de invitacion nuevos cuando pierdan sesion:
+Patient default:
+- Ana Maria Ortega Salcedo: `jd7aef8495580bhm2sst1ty13587bwcw`
+
+Para generar links de invitacion nuevos:
 
 ```powershell
 $env:CONVEX_DEPLOYMENT = 'prod:little-moose-778'
 npx convex run invitations:create --% "{\"caregiverId\": \"<id>\"}"
-# La URL final es https://losnuestros.vercel.app/entrar/<token>
-# Compartir por WhatsApp.
+# Token reutilizable: comparti losnuestros.vercel.app/entrar/<token> por WhatsApp.
 ```
 
 ## Auth model en 30 segundos
 
 1. Mauricio corre `invitations:create` para una caregiver → recibe un token random base64url.
 2. Comparte por WhatsApp el link `losnuestros.vercel.app/entrar/<token>`.
-3. La caregiver toca el link → `GET /entrar/[token]` (route handler, no page) consume el token (lo marca `consumed_at`), genera un payload firmado con HMAC-SHA256 sobre `SESSION_SECRET`, setea cookie `ln_session` (HttpOnly, SameSite=Lax, 1 ano), redirige a `/app`.
-4. `/app/layout.tsx` es Server Component que llama `getSession()` (verify HMAC). Si no hay sesion → redirige a `/`. Si si → fetchea patient + caregiver, los inyecta via `AppProvider` (React Context) a los Client Components hijos.
-5. Convex Functions confian en el `caregiverId` pasado como arg porque solo se llaman desde nuestro server (cookie verificada arriba). Es un trust model de scope familiar, no enterprise.
+3. La caregiver toca el link → `GET /entrar/[token]` (route handler) consume el token, genera payload firmado con HMAC-SHA256 sobre `SESSION_SECRET`, setea cookie `ln_session` (HttpOnly, SameSite=Lax, 1 ano), redirige a `/app` (o `/abuela` si role=patient).
+4. `/app/layout.tsx` (Server Component) llama `getSession()`. Si no hay sesion → redirige a `/`. Si si → fetchea patient + caregiver + listByPatient + getPatientCaregiver, los inyecta via `AppProvider` a Client Components.
+5. Convex Functions confian en el `caregiverId` pasado como arg porque solo se llaman desde nuestro server. Trust model de scope familiar, no enterprise.
 
 ## Errores conocidos / gotchas
 
-- `npx convex deploy` con `.env.local` apuntando a deployment local pide confirmacion interactiva. Workaround: setear `$env:CONVEX_DEPLOYMENT = 'prod:little-moose-778'` antes de la llamada.
+- `npx convex deploy` con `.env.local` apuntando a deployment local pide confirmacion interactiva. Workaround: setear `$env:CONVEX_DEPLOYMENT = 'prod:little-moose-778'` antes.
 - Convex rechaza non-ASCII en field names de objetos retornados por mutations. Usar `caregiver: "Mamá"` dentro de un valor, no como key del objeto.
 - Node en Windows muestra `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` al exit. No afecta resultado, ignorar.
 - `Remove-Item` en PowerShell con `[token]` en el path falla. Usar `-LiteralPath`.
 - TypeScript 5.7+ trata `Uint8Array<ArrayBufferLike>` incompatible con `crypto.subtle.verify`. Tipar explicito como `Uint8Array<ArrayBuffer>` (ver `lib/session.ts`).
-- Tailwind v4 usa CSS-first (`@theme inline` en `globals.css`), no hay `tailwind.config.ts`. Para agregar un color nuevo, lo defines como `--color-x` ahi.
+- Tailwind v4 usa CSS-first (`@theme inline` en `globals.css`), no hay `tailwind.config.ts`. Para agregar un color nuevo, lo defines como `--color-x` ahi y como `--x` en `:root`.
+- Convex schema con campos opcionales: para "migrar" haz el campo viejo `v.optional()` primero, mutation que backfill al nuevo, luego (opcional) cleanup. Asi no rompes la validacion al deployar.
+- PowerShell se come las comillas en JSON args de `convex run`. Mejor pasar JSON via bash si esta disponible.
+- Auto-save en finanzas con debounce 800ms: si la cuidadora cambia el mes seleccionado en menos de 800ms despues de tipear, podria perder el ultimo cambio. En la practica casi nunca pasa.
+- Email FROM `onboarding@resend.dev` puede caer a spam. Para mejor deliverability hay que verificar un dominio propio en Resend.
 
 ## Cuando duden, lean
 
 - `PENDIENTES.md` para backlog y decisiones pendientes
-- `spec/panel-original.html` para entender que esperaba la spec
+- `spec/panel-original.html` para entender que esperaba la spec original
 - `convex/_generated/ai/guidelines.md` antes de tocar Convex
 - Memoria persistente en `~/.claude/projects/c--Users-varel-LosNuestros/memory/`: `user_role.md`, `project_context.md`, `feedback_rules.md`

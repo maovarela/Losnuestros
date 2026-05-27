@@ -5,7 +5,7 @@ import { Icon } from "./icon";
 
 const ITEMS = [
   { href: "/app/resumen", label: "Inicio", icon: "home" },
-  { href: "/app/medicamentos", label: "Meds", icon: "medication" },
+  { href: "/app/medicamentos", label: "Medicinas", icon: "medication" },
   { href: "/app/citas", label: "Citas", icon: "event" },
   { href: "/app/finanzas", label: "Finanzas", icon: "payments" },
   {

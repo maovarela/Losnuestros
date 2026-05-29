@@ -105,6 +105,12 @@ function monthKeysRange(): string[] {
   return out;
 }
 
+function shiftMonth(key: string, delta: number): string {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 type PayerId = Id<"caregivers"> | null;
 
 function todayISO(): string {
@@ -463,26 +469,21 @@ export default function FinanzasPage() {
 
   return (
     <main>
-      <div className="rounded-xl border border-border bg-bg p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm font-medium">Mes</div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setSelectedMonth(currentMonthKey())}
-              className={`min-h-9 rounded-md border px-3 py-1.5 text-xs font-medium active:bg-bg-2 ${selectedMonth === currentMonthKey() ? "border-text bg-text text-bg" : "border-border-2 bg-bg text-text hover:bg-bg-2"}`}
-            >
-              Mes actual
-            </button>
-            <button
-              onClick={() => setSelectedMonth(previousMonthKey())}
-              className={`min-h-9 rounded-md border px-3 py-1.5 text-xs font-medium active:bg-bg-2 ${selectedMonth === previousMonthKey() ? "border-text bg-text text-bg" : "border-border-2 bg-bg text-text hover:bg-bg-2"}`}
-            >
-              Mes pasado
-            </button>
+      <div className="rounded-xl border border-border bg-bg p-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
+            aria-label="Mes anterior"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-2 active:bg-bg-2 hover:bg-bg-2"
+          >
+            <Icon name="chevron_left" className="text-2xl" />
+          </button>
+          <div className="relative flex-1">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="min-h-9 rounded-md border border-border-2 bg-bg-2 px-2 py-1.5 text-xs focus:border-blue focus:outline-none"
+              aria-label="Seleccionar mes"
+              className="w-full appearance-none rounded-md border border-border-2 bg-bg-2 px-4 py-2.5 text-center text-base font-medium tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
             >
               {monthKeysRange().map((k) => (
                 <option key={k} value={k}>
@@ -490,12 +491,33 @@ export default function FinanzasPage() {
                 </option>
               ))}
             </select>
+            <Icon
+              name="arrow_drop_down"
+              className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-2xl text-text-2"
+            />
           </div>
+          <button
+            onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
+            aria-label="Mes siguiente"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-text-2 active:bg-bg-2 hover:bg-bg-2"
+          >
+            <Icon name="chevron_right" className="text-2xl" />
+          </button>
         </div>
-        <div className="mt-2 flex items-center justify-between text-xs text-text-2">
-          <span>Editando {monthLabel(selectedMonth)}</span>
-          <SaveIndicator status={saveStatus} />
-        </div>
+        {(selectedMonth === currentMonthKey() ||
+          selectedMonth === previousMonthKey() ||
+          saveStatus !== "idle") && (
+          <div className="mt-2 flex items-center justify-between text-xs text-text-2">
+            <span>
+              {selectedMonth === currentMonthKey()
+                ? "Este es el mes actual"
+                : selectedMonth === previousMonthKey()
+                  ? "Este es el mes pasado"
+                  : ""}
+            </span>
+            <SaveIndicator status={saveStatus} />
+          </div>
+        )}
       </div>
 
       <div className="mt-4 rounded-xl border border-border bg-bg p-4">

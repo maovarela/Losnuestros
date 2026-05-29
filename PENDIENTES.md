@@ -2,10 +2,11 @@
 
 Ideas y mejoras que surgen durante el desarrollo. No tienen fecha. Se atacan cuando duele o cuando hay tiempo.
 
-## Hecho (refleja lo entregado a 2026-05-27)
+## Hecho (refleja lo entregado a 2026-05-29)
 
 Para no perder memoria de lo que ya se construyo:
 
+**Hasta 2026-05-27:**
 - **Notificaciones fuera de la app**: email digest semanal (domingo 13 UTC) + alertas en tiempo real (refill, payment, appointment) via Resend + scheduler de Convex. FROM `onboarding@resend.dev`. Ingrid configurada con `iyi1125@gmail.com`. Sandra: pendiente de pasar email.
 - **Vista de la abuela** en `/abuela`: caregiver con `role="patient"`, login propio, vista solo-lectura con saldo grande + lista de medicamentos.
 - **Agente de ingestion (parcial)**: drag-and-drop global a `/app/ingestar` + foto/texto + Gemini Flash con response schema estructurado + propuestas que la cuidadora confirma antes de guardar. Fallback manual si Gemini falla.
@@ -17,14 +18,32 @@ Para no perder memoria de lo que ya se construyo:
 - **Valor dinamico en Pagos**: monto desde `finance_months` (current + last) en lugar del `amount_reference` fijo. Status compacto en una linea.
 - **Tercer boton "Ana Maria"** en WhoDidIt (selector pagador). Default para meses nuevos en finanzas.
 
+**Round post-feedback de Ingrid (2026-05-27 a 2026-05-29):**
+- **Edit inline por card** en medicamentos, citas, referencias de pago. Antes "Editar" scrolleaba al top y perdias contexto. Ahora la card se expande con form ahi mismo. "Agregar" colapsable arriba a la derecha.
+- **Referencias de pago: editables desde la UI**. Cada card tiene boton lapiz → form inline para cambiar frecuencia, dia de vencimiento, datos de pago (N° cliente, etc.), notas. Si Ingrid o Sandra reciben info nueva, no necesitan a Mauricio.
+- **Renames en bottom nav**: "Meds" → "Medicinas" (sin jerga gringa). "Pagos" → "Referencias de pago" (Pagos confundia con la accion de pagar que vive en Finanzas).
+- **Checkbox-first en finanzas** per servicio. Antes era pill row `[No pagado][Ana Maria][Yo][Sandra]` que confundia a Ingrid. Ahora: checkbox "Pagado" + amount. Cuando marcado, abajo pills + date picker. Default: Ana Maria + hoy. Tinte verde si Ana Maria pago, ambar si alguien le adelanto plata (deuda pendiente).
+- **Fecha de pago** (`_paid_at`) por servicio: 7 nuevos campos opcionales en schema. UI con date picker. Auditoria de "cuando se hizo el pago" separada de "cuando se registro en el app".
+- **Selector de mes simplificado** en finanzas: `[<] [dropdown grande Abril 2026 ▾] [>]`. Antes habia 3 controles para lo mismo (Mes actual / Mes pasado / dropdown).
+- **PWA manifest + iconos**: la app se instala como app standalone en tablet/phone via Chrome "Instalar" o Safari "Agregar a pantalla de inicio". Icono AO navy en home. Camino 1 para tablet kiosk-style de la abuela.
+
 ## UI: items diferidos del audit
 
 Los fixes de impacto alto del audit P0/P1 ya estan aplicados (em-dashes, contraste, tap targets, voseo a tuteo, formato de miles, save toast, focus rings en inputs, semantica). Lo que quedo abierto:
 
 - **Modal custom para confirmaciones.** Hoy usa `window.confirm()`. Se ve distinto en cada OS y no respeta el tono. Modal propio en espanol con botones grandes claramente diferenciados (rojo para borrar). Aplica a: borrar mes en finanzas, borrar medicamento, borrar cita, settle de cuentas pendientes.
-- **Lista antes que el formulario** en medicamentos y citas. Hoy el form ocupa la parte alta y empuja la lista. Si la cuidadora abre solo para consultar, scrollea. Alternativas: form colapsado en acordeon, o lista arriba y form como boton sticky al final.
 - **Manejo de errores de red en mutaciones.** Si Convex falla un `await upsert/create/update`, el catch silencioso (o vacio) deja a la cuidadora creyendo que se guardo. Mostrar banner rojo "No se pudo guardar. Revisa tu conexion e intenta de nuevo." El auto-save de finanzas ya tiene `saveStatus: "error"` pero el toast solo aparece brevemente; mejorar.
 - **Focus-visible rings en botones.** Faltan rings consistentes en los botones (pills, FAB, bottom nav). Inputs ya tienen.
+- ~~**Lista antes que el formulario** en medicamentos y citas.~~ HECHO 2026-05-29: edit inline por card + form Agregar colapsable.
+
+## Tablet kiosk para la abuela (camino 1 elegido, en progreso)
+
+Mauricio quiere una tablet siempre prendida en la habitacion de Ana Maria con `/abuela` como dashboard tipo Echo Show. PWA + iconos ya estan listos. Falta:
+
+- **Wake Lock API en `/abuela`**: JS le pide al sistema "mantene la pantalla prendida" mientras la pagina esta abierta. No depende de settings de la tablet (auto-lock corto, etc.). Compatible Chrome moderno y Safari 16.4+.
+- **Layout horizontal grande**: detectar tablet landscape y servir layout especial. Saldo a 80-100px, medicamentos en 2 columnas, sin scroll. Tipo Echo Show.
+- **Header de panel**: reloj grande + fecha actual + dia de la semana. Opcional: clima de Bogota via API gratis (OpenWeatherMap free tier, o weatherapi.com).
+- **Sugerencia hardware**: Amazon Fire HD 10 (~$150 USD), Samsung Tab A, o reusar tablet vieja. Plug-in 24/7. Fully Kiosk Browser app si se quiere bloquear que toquen otras apps.
 
 ## Dark mode
 

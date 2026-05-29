@@ -101,7 +101,7 @@ app/
   app/
     layout.tsx              guard de sesion + header + bottom nav fija + FAB + providers
     _components/
-      tabs.tsx              bottom nav fija con 5 items (Inicio/Meds/Citas/Finanzas/Pagos)
+      tabs.tsx              bottom nav fija (Inicio/Medicinas/Citas/Finanzas/Referencias de pago)
       fab.tsx               FAB azul navy flotante hacia /app/ingestar (se oculta alli)
       icon.tsx              wrapper Material Symbols con filled prop
       pill.tsx              Pill component variantes success/warn/danger/info/tertiary/neutral
@@ -109,11 +109,13 @@ app/
       drag-drop-overlay.tsx overlay global para drag files a /app/ingestar
     page.tsx                redirect a /app/resumen
     resumen/page.tsx        UpcomingCard con iconos+borde-l + Lo que paso (atribucion)
-    medicamentos/page.tsx   alertas con borde-l + cards con icon container azul + pills
-    citas/page.tsx          banner proxima cita purple + cards con icon event purple
-    referencias/page.tsx    cards con icon container ambar + status dinamico desde finance_months
-    finanzas/page.tsx       auto-save todo (sin boton) + glass-card saldo + estado mes anterior
+    medicamentos/page.tsx   alertas + lista con edit inline por card + form Agregar colapsable
+    citas/page.tsx          banner proxima cita purple + cards con edit inline + Agregar colapsable
+    referencias/page.tsx    cards compactas con edit inline por card + status dinamico
+    finanzas/page.tsx       selector mes con arrows + auto-save + PaidServiceRow (checkbox+pills+fecha+tinte)
     ingestar/page.tsx       upload foto/texto + Gemini parsing + revisar propuestas
+manifest.ts                 PWA manifest: start_url=/abuela, display=standalone, theme #2a5c82
+apple-icon.tsx              iOS 'Add to Home Screen' icon 180x180 via ImageResponse
 
 convex/
   schema.ts                 patients, caregivers (con role+email), invitations,
@@ -149,7 +151,7 @@ spec/panel-original.html    HTML original como referencia funcional
 PENDIENTES.md               backlog vivo
 ```
 
-## Estado al cierre (2026-05-27, commit `a161aa8`)
+## Estado al cierre (2026-05-29, commit `81be8c1`)
 
 Todo lo de las 6 fases originales esta en produccion, mas un set grande de mejoras de esta sesion:
 
@@ -195,12 +197,47 @@ Todo lo de las 6 fases originales esta en produccion, mas un set grande de mejor
 - Mental model unico: la app se acuerda sola, no hay que apretar nada.
 - Sigue existiendo `setServicePayer` para CTAs externos (resumen, ingestar) pero la pagina de finanzas no la usa directamente.
 
-**Otras mejoras:**
+**Otras mejoras (hasta a161aa8):**
 - Tercer boton "Ana Maria" en WhoDidIt (selector pagador) en todas las pantallas. Default en finanzas para meses nuevos.
 - Card "Estado del mes anterior" en finanzas (oculta cuando no hay data del prev).
 - Valor dinamico en Pagos: monto desde `finance_months` (current + last) en lugar del `amount_reference` fijo. Status compacto en una linea: "✓ $X pagados en mayo por Ana Maria".
 
-Backlog vivo: **`PENDIENTES.md`** en root. Lo grande pendiente: dark mode acompasado, modal custom vs `window.confirm`, lista antes que form en meds/citas, manejo de errores de red en mutaciones, deliverability emails (verificar dominio en Resend).
+## Round post-cierre (2026-05-29, hasta `81be8c1`)
+
+Set de mejoras de UX post-feedback directo de Ingrid usando la app:
+
+**Edit inline por card** (medicamentos + citas + referencias-de-pago):
+- Antes: tocar "Editar" desde la lista al fondo te scrolleaba al form al top. Confuso porque perdias contexto.
+- Ahora: cada card tiene su propio modo edit. Toca "Editar" y la card se expande con el form ahi mismo. Cero scroll.
+- Form de "Agregar" colapsado por default. Boton "+ Agregar" arriba a la derecha del titulo lo abre.
+- Deep link `?edit=<id>` (de CTAs en resumen / ingestar) hace scrollIntoView smooth a la card especifica y la abre.
+
+**Referencias de pago: cards compactas + editables** (`/app/referencias`):
+- Cards mas compactos (icon 11x11, padding 3, text-sm). Cabe mas en pantalla.
+- Boton de lapiz arriba a la derecha en cada card → form inline para editar frecuencia, dia de vencimiento, datos de pago (N° cliente, etc.) y notas.
+- Mutation `paymentReferences.update` ya existia.
+- Renombrado en bottom nav de "Pagos" a "Referencias de pago" (Pagos confundia con la accion de pagar, que vive en Finanzas).
+- Tambien renombrado "Meds" a "Medicinas" (sin jerga gringa).
+
+**Finanzas: checkbox-first per service** (`/app/finanzas`):
+- Schema: 7 nuevos campos `_paid_at: string` (YYYY-MM-DD) por servicio. Migracion no-breaking (todos optional).
+- UI: `PaidServiceRow` reemplaza a `PayerRow`. Checkbox "Pagado" + amount. Cuando marcado, abajo se muestra pills [Ana Maria][Yo][Sandra] + date picker.
+- Default al marcar el checkbox: paid_by = Ana Maria, paid_at = hoy. Un toque y queda registrado el caso comun.
+- Tinte de fondo segun pagador: verde subtle si Ana Maria (normal, saldo bajo), ambar subtle si Ingrid/Sandra (deuda pendiente). Permite scanear quien pago sin leer.
+- `setServicePayer` mutation actualizada para aceptar `paidAt` opcional. CTAs externos (resumen/ingestar) usan default = hoy.
+- Card "Estado del mes anterior" oculta cuando no hay data del prev (antes mostraba un mensaje vacio "No hay registro..." confuso).
+
+**Selector de mes simplificado:**
+- Antes: 3 controles para la misma cosa (botones "Mes actual" + "Mes pasado" + dropdown). Confundia.
+- Ahora: `[<] [dropdown grande Abril 2026 ▾] [>]`. Patron familiar de cualquier calendario. Si estas en mes actual/pasado, texto chico abajo confirma.
+
+**PWA + iconos para tablet kiosk-style** (camino 1: app instalable):
+- `app/manifest.ts`: name='LosNuestros - Ana Maria', start_url='/abuela', display='standalone', theme color #2a5c82.
+- `public/icon.svg` + `public/icon-maskable.svg`: AO navy sobre rounded square.
+- `app/apple-icon.tsx`: genera PNG 180x180 para iOS via ImageResponse.
+- Pendiente para Echo Show feel completo: Wake Lock API (mantener pantalla prendida) + layout grande horizontal + reloj + clima.
+
+Backlog vivo: **`PENDIENTES.md`** en root. Lo grande pendiente: dark mode acompasado, modal custom vs `window.confirm`, manejo de errores de red en mutaciones, deliverability emails (verificar dominio en Resend), Wake Lock + layout kiosk grande para tablet de la abuela.
 
 ## Reglas de colaboracion (hard)
 

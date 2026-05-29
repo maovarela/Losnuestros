@@ -107,23 +107,35 @@ function monthKeysRange(): string[] {
 
 type PayerId = Id<"caregivers"> | null;
 
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 type FormState = {
   pension: string;
   prima: string;
   compensar: string;
   compensar_paid_by: PayerId;
+  compensar_paid_at: string;
   enel: string;
   enel_paid_by: PayerId;
+  enel_paid_at: string;
   gas: string;
   gas_paid_by: PayerId;
+  gas_paid_at: string;
   agua: string;
   agua_paid_by: PayerId;
+  agua_paid_at: string;
   internet: string;
   internet_paid_by: PayerId;
+  internet_paid_at: string;
   celular: string;
   celular_paid_by: PayerId;
+  celular_paid_at: string;
   alarma: string;
   alarma_paid_by: PayerId;
+  alarma_paid_at: string;
   empleada: string;
   caja: string;
   mercado: string;
@@ -138,18 +150,25 @@ function emptyForm(): FormState {
     prima: "",
     compensar: String(DEFAULTS.compensar),
     compensar_paid_by: null,
+    compensar_paid_at: "",
     enel: String(DEFAULTS.enel),
     enel_paid_by: null,
+    enel_paid_at: "",
     gas: String(DEFAULTS.gas),
     gas_paid_by: null,
+    gas_paid_at: "",
     agua: "",
     agua_paid_by: null,
+    agua_paid_at: "",
     internet: String(DEFAULTS.internet),
     internet_paid_by: null,
+    internet_paid_at: "",
     celular: String(DEFAULTS.celular),
     celular_paid_by: null,
+    celular_paid_at: "",
     alarma: "",
     alarma_paid_by: null,
+    alarma_paid_at: "",
     empleada: String(DEFAULTS.empleada),
     caja: String(DEFAULTS.caja),
     mercado: String(DEFAULTS.mercado),
@@ -242,18 +261,25 @@ export default function FinanzasPage() {
       prima: monthData.prima ? String(monthData.prima) : "",
       compensar: String(monthData.compensar),
       compensar_paid_by: monthData.compensar_paid_by ?? null,
+      compensar_paid_at: monthData.compensar_paid_at ?? "",
       enel: String(monthData.enel),
       enel_paid_by: monthData.enel_paid_by ?? null,
+      enel_paid_at: monthData.enel_paid_at ?? "",
       gas: String(monthData.gas),
       gas_paid_by: monthData.gas_paid_by ?? null,
+      gas_paid_at: monthData.gas_paid_at ?? "",
       agua: monthData.agua ? String(monthData.agua) : "",
       agua_paid_by: monthData.agua_paid_by ?? null,
+      agua_paid_at: monthData.agua_paid_at ?? "",
       internet: String(monthData.internet),
       internet_paid_by: monthData.internet_paid_by ?? null,
+      internet_paid_at: monthData.internet_paid_at ?? "",
       celular: String(monthData.celular),
       celular_paid_by: monthData.celular_paid_by ?? null,
+      celular_paid_at: monthData.celular_paid_at ?? "",
       alarma: monthData.alarma ? String(monthData.alarma) : "",
       alarma_paid_by: monthData.alarma_paid_by ?? null,
+      alarma_paid_at: monthData.alarma_paid_at ?? "",
       empleada: String(monthData.empleada),
       caja: String(monthData.caja),
       mercado: String(monthData.mercado),
@@ -307,8 +333,32 @@ export default function FinanzasPage() {
     };
   }, [form, previousMonthSaldo, patientCaregiver, settlements, selectedMonth]);
 
+  function handlePaidToggle(service: ServiceKey, checked: boolean) {
+    if (checked) {
+      updateForm({
+        [`${service}_paid_by`]: patientCaregiver?.id ?? caregiverId,
+        [`${service}_paid_at`]: todayISO(),
+      } as Partial<FormState>);
+    } else {
+      updateForm({
+        [`${service}_paid_by`]: null,
+        [`${service}_paid_at`]: "",
+      } as Partial<FormState>);
+    }
+  }
+
   function handlePayerChange(service: ServiceKey, paidBy: PayerId) {
-    updateForm({ [`${service}_paid_by`]: paidBy } as Partial<FormState>);
+    updateForm({
+      [`${service}_paid_by`]: paidBy,
+      [`${service}_paid_at`]:
+        paidBy && !form[`${service}_paid_at` as keyof FormState]
+          ? todayISO()
+          : form[`${service}_paid_at` as keyof FormState],
+    } as Partial<FormState>);
+  }
+
+  function handlePaidAtChange(service: ServiceKey, date: string) {
+    updateForm({ [`${service}_paid_at`]: date } as Partial<FormState>);
   }
 
   async function handleSave() {
@@ -322,18 +372,25 @@ export default function FinanzasPage() {
         prima: form.prima ? num(form.prima) : undefined,
         compensar: num(form.compensar),
         compensar_paid_by: form.compensar_paid_by ?? undefined,
+        compensar_paid_at: form.compensar_paid_at || undefined,
         enel: num(form.enel),
         enel_paid_by: form.enel_paid_by ?? undefined,
+        enel_paid_at: form.enel_paid_at || undefined,
         gas: num(form.gas),
         gas_paid_by: form.gas_paid_by ?? undefined,
+        gas_paid_at: form.gas_paid_at || undefined,
         agua: num(form.agua),
         agua_paid_by: form.agua_paid_by ?? undefined,
+        agua_paid_at: form.agua_paid_at || undefined,
         internet: num(form.internet),
         internet_paid_by: form.internet_paid_by ?? undefined,
+        internet_paid_at: form.internet_paid_at || undefined,
         celular: num(form.celular),
         celular_paid_by: form.celular_paid_by ?? undefined,
+        celular_paid_at: form.celular_paid_at || undefined,
         alarma: num(form.alarma),
         alarma_paid_by: form.alarma_paid_by ?? undefined,
+        alarma_paid_at: form.alarma_paid_at || undefined,
         empleada: num(form.empleada),
         caja: num(form.caja),
         mercado: num(form.mercado),
@@ -632,63 +689,36 @@ export default function FinanzasPage() {
         <SectionLabel>Egresos</SectionLabel>
 
         <SectionLabel className="mt-4">Servicios públicos</SectionLabel>
-        <div className="mt-2 space-y-3">
-          <PayerRow
-            label="Compensar salud"
-            value={form.compensar}
-            paidBy={form.compensar_paid_by}
-            onChange={(v) => updateForm({ compensar: v })}
-            onPaidBy={(p) => handlePayerChange("compensar", p)}
-            options={payerOptions}
-          />
-          <PayerRow
-            label="Energía Enel"
-            value={form.enel}
-            paidBy={form.enel_paid_by}
-            onChange={(v) => updateForm({ enel: v })}
-            onPaidBy={(p) => handlePayerChange("enel", p)}
-            options={payerOptions}
-          />
-          <PayerRow
-            label="Gas Vanti"
-            value={form.gas}
-            paidBy={form.gas_paid_by}
-            onChange={(v) => updateForm({ gas: v })}
-            onPaidBy={(p) => handlePayerChange("gas", p)}
-            options={payerOptions}
-          />
-          <PayerRow
-            label="Acueducto EAAB"
-            value={form.agua}
-            paidBy={form.agua_paid_by}
-            onChange={(v) => updateForm({ agua: v })}
-            onPaidBy={(p) => handlePayerChange("agua", p)}
-            options={payerOptions}
-          />
-          <PayerRow
-            label="Claro internet"
-            value={form.internet}
-            paidBy={form.internet_paid_by}
-            onChange={(v) => updateForm({ internet: v })}
-            onPaidBy={(p) => handlePayerChange("internet", p)}
-            options={payerOptions}
-          />
-          <PayerRow
-            label="Claro celular"
-            value={form.celular}
-            paidBy={form.celular_paid_by}
-            onChange={(v) => updateForm({ celular: v })}
-            onPaidBy={(p) => handlePayerChange("celular", p)}
-            options={payerOptions}
-          />
-          <PayerRow
-            label="Alarma"
-            value={form.alarma}
-            paidBy={form.alarma_paid_by}
-            onChange={(v) => updateForm({ alarma: v })}
-            onPaidBy={(p) => handlePayerChange("alarma", p)}
-            options={payerOptions}
-          />
+        <div className="mt-2 space-y-2">
+          {(
+            [
+              { key: "compensar" as const, label: "Compensar salud" },
+              { key: "enel" as const, label: "Energía Enel" },
+              { key: "gas" as const, label: "Gas Vanti" },
+              { key: "agua" as const, label: "Acueducto EAAB" },
+              { key: "internet" as const, label: "Claro internet" },
+              { key: "celular" as const, label: "Claro celular" },
+              { key: "alarma" as const, label: "Alarma" },
+            ] as { key: ServiceKey; label: string }[]
+          ).map(({ key, label }) => (
+            <PaidServiceRow
+              key={key}
+              label={label}
+              amount={form[key]}
+              paidBy={form[`${key}_paid_by`] as PayerId}
+              paidAt={form[`${key}_paid_at`] as string}
+              patientCaregiverId={patientCaregiver?.id ?? null}
+              currentCaregiverId={caregiverId}
+              currentCaregiverName={caregiverName}
+              otherCaregivers={otherCaregivers}
+              onAmountChange={(v) =>
+                updateForm({ [key]: v } as Partial<FormState>)
+              }
+              onPaidToggle={(c) => handlePaidToggle(key, c)}
+              onPaidByChange={(p) => handlePayerChange(key, p)}
+              onPaidAtChange={(d) => handlePaidAtChange(key, d)}
+            />
+          ))}
         </div>
 
         <SectionLabel className="mt-5">Gastos del hogar</SectionLabel>
@@ -1150,58 +1180,112 @@ function MoneyRow({
   );
 }
 
-function PayerRow({
+function PaidServiceRow({
   label,
-  value,
+  amount,
   paidBy,
-  onChange,
-  onPaidBy,
-  options,
+  paidAt,
+  patientCaregiverId,
+  currentCaregiverId,
+  currentCaregiverName,
+  otherCaregivers,
+  onAmountChange,
+  onPaidToggle,
+  onPaidByChange,
+  onPaidAtChange,
 }: {
   label: string;
-  value: string;
+  amount: string;
   paidBy: PayerId;
-  onChange: (v: string) => void;
-  onPaidBy: (p: PayerId) => void;
-  options: { id: PayerId; label: string }[];
+  paidAt: string;
+  patientCaregiverId: Id<"caregivers"> | null;
+  currentCaregiverId: Id<"caregivers">;
+  currentCaregiverName: string;
+  otherCaregivers: { id: Id<"caregivers">; name: string }[];
+  onAmountChange: (v: string) => void;
+  onPaidToggle: (checked: boolean) => void;
+  onPaidByChange: (p: PayerId) => void;
+  onPaidAtChange: (date: string) => void;
 }) {
+  const isPaid = paidBy !== null;
+  const paidByPatient = isPaid && paidBy === patientCaregiverId;
+  const tintClass = !isPaid
+    ? "bg-bg"
+    : paidByPatient
+      ? "bg-green-bg/50"
+      : "bg-amber-bg/50";
+
+  const payerOptions: { id: Id<"caregivers">; label: string }[] = [
+    ...(patientCaregiverId
+      ? [{ id: patientCaregiverId, label: "Ana María" }]
+      : []),
+    { id: currentCaregiverId, label: `Yo (${currentCaregiverName})` },
+    ...otherCaregivers.map((c) => ({ id: c.id, label: c.name })),
+  ];
+
   return (
-    <div className="border-b border-border pb-3 last:border-0">
+    <div
+      className={`rounded-lg border border-border p-3 transition-colors ${tintClass}`}
+    >
       <div className="flex items-center justify-between gap-2">
-        <div className="text-sm text-text-2">{label}</div>
-        <div className="relative flex items-center">
+        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={isPaid}
+            onChange={(e) => onPaidToggle(e.target.checked)}
+            className="h-5 w-5 shrink-0 accent-blue"
+            aria-label={`Marcar ${label} como pagado`}
+          />
+          <span className="text-sm font-medium text-text">{label}</span>
+        </label>
+        <div className="relative flex shrink-0 items-center">
           <span className="pointer-events-none absolute left-3 text-sm text-text-2">
             $
           </span>
           <input
             type="text"
             inputMode="numeric"
-            value={formatThousands(value)}
-            onChange={(e) => onChange(digitsOnly(e.target.value))}
+            value={formatThousands(amount)}
+            onChange={(e) => onAmountChange(digitsOnly(e.target.value))}
             placeholder="0"
-            className="w-40 rounded-md border border-border-2 bg-bg-2 pl-6 pr-3 py-2 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="w-32 rounded-md border border-border-2 bg-bg pl-6 pr-3 py-1.5 text-right text-sm tabular-nums focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
           />
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        {options.map((o) => {
-          const active = paidBy === o.id;
-          return (
-            <button
-              key={String(o.id ?? "none")}
-              type="button"
-              onClick={() => onPaidBy(o.id)}
-              className={`min-h-8 rounded-md border px-2.5 py-1 text-xs font-medium active:opacity-80 ${
-                active
-                  ? "border-text bg-text text-bg"
-                  : "border-border-2 bg-bg text-text hover:bg-bg-2"
-              }`}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
+
+      {isPaid && (
+        <div className="mt-2.5 space-y-2 pl-7">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs text-text-2">Pagó:</span>
+            {payerOptions.map((o) => {
+              const active = paidBy === o.id;
+              return (
+                <button
+                  key={String(o.id)}
+                  type="button"
+                  onClick={() => onPaidByChange(o.id)}
+                  className={`min-h-7 rounded-md border px-2 py-0.5 text-xs font-medium active:opacity-80 ${
+                    active
+                      ? "border-text bg-text text-bg"
+                      : "border-border-2 bg-bg text-text hover:bg-bg-2"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-text-2">El:</span>
+            <input
+              type="date"
+              value={paidAt}
+              onChange={(e) => onPaidAtChange(e.target.value)}
+              className="rounded-md border border-border-2 bg-bg px-2 py-1 text-xs focus:border-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

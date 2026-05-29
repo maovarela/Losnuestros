@@ -3,6 +3,11 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function fmtCOPServer(n: number | undefined): string {
   if (n === undefined || n === null) return "sin dato";
   return "$" + Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -137,18 +142,25 @@ const fieldsValidator = {
   prima: v.optional(v.number()),
   compensar: v.number(),
   compensar_paid_by: v.optional(v.id("caregivers")),
+  compensar_paid_at: v.optional(v.string()),
   enel: v.number(),
   enel_paid_by: v.optional(v.id("caregivers")),
+  enel_paid_at: v.optional(v.string()),
   gas: v.number(),
   gas_paid_by: v.optional(v.id("caregivers")),
+  gas_paid_at: v.optional(v.string()),
   agua: v.number(),
   agua_paid_by: v.optional(v.id("caregivers")),
+  agua_paid_at: v.optional(v.string()),
   internet: v.number(),
   internet_paid_by: v.optional(v.id("caregivers")),
+  internet_paid_at: v.optional(v.string()),
   celular: v.number(),
   celular_paid_by: v.optional(v.id("caregivers")),
+  celular_paid_at: v.optional(v.string()),
   alarma: v.number(),
   alarma_paid_by: v.optional(v.id("caregivers")),
+  alarma_paid_at: v.optional(v.string()),
   empleada: v.number(),
   caja: v.number(),
   mercado: v.number(),
@@ -480,10 +492,12 @@ export const setServicePayer = mutation({
     ),
     paidBy: v.optional(v.id("caregivers")),
     amount: v.optional(v.number()),
+    paidAt: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const field = PAID_BY_FIELD[args.service];
     const amountField = args.service;
+    const paidAtField = `${args.service}_paid_at`;
     const existing = await ctx.db
       .query("finance_months")
       .withIndex("by_patient_month", (q) =>
@@ -515,6 +529,7 @@ export const setServicePayer = mutation({
         | undefined;
       const patch: Record<string, unknown> = {
         [field]: args.paidBy,
+        [paidAtField]: args.paidBy ? (args.paidAt ?? todayISO()) : undefined,
         updated_by: args.updatedBy,
         updated_at: now,
       };
@@ -528,6 +543,7 @@ export const setServicePayer = mutation({
         args.service === s && args.amount !== undefined
           ? args.amount
           : DEFAULTS[s];
+      const paidAt = args.paidBy ? (args.paidAt ?? todayISO()) : undefined;
       resultId = await ctx.db.insert("finance_months", {
         patient_id: args.patientId,
         month_key: args.monthKey,
@@ -535,20 +551,28 @@ export const setServicePayer = mutation({
         compensar: useAmount("compensar"),
         compensar_paid_by:
           args.service === "compensar" ? args.paidBy : undefined,
+        compensar_paid_at:
+          args.service === "compensar" ? paidAt : undefined,
         enel: useAmount("enel"),
         enel_paid_by: args.service === "enel" ? args.paidBy : undefined,
+        enel_paid_at: args.service === "enel" ? paidAt : undefined,
         gas: useAmount("gas"),
         gas_paid_by: args.service === "gas" ? args.paidBy : undefined,
+        gas_paid_at: args.service === "gas" ? paidAt : undefined,
         agua: useAmount("agua"),
         agua_paid_by: args.service === "agua" ? args.paidBy : undefined,
+        agua_paid_at: args.service === "agua" ? paidAt : undefined,
         internet: useAmount("internet"),
         internet_paid_by:
           args.service === "internet" ? args.paidBy : undefined,
+        internet_paid_at: args.service === "internet" ? paidAt : undefined,
         celular: useAmount("celular"),
         celular_paid_by:
           args.service === "celular" ? args.paidBy : undefined,
+        celular_paid_at: args.service === "celular" ? paidAt : undefined,
         alarma: useAmount("alarma"),
         alarma_paid_by: args.service === "alarma" ? args.paidBy : undefined,
+        alarma_paid_at: args.service === "alarma" ? paidAt : undefined,
         empleada: DEFAULTS.empleada,
         caja: DEFAULTS.caja,
         mercado: DEFAULTS.mercado,
